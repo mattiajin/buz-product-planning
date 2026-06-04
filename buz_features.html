@@ -145,8 +145,8 @@
     padding: 24px;
   }
   .section-no { font-size: 11px; font-weight: 600; color: #aeaeb2; letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 3px; }
-  .section-name { font-size: 17px; font-weight: 600; color: #1d1d1f; margin-bottom: 4px; }
-  .section-note { font-size: 12px; color: #86868b; margin-bottom: 18px; }
+  .section-name { font-size: 17px; font-weight: 600; color: #1d1d1f; margin-bottom: 5px; }
+  .section-note { font-size: 12px; color: #86868b; margin-bottom: 0; padding-bottom: 20px; border-bottom: 1px solid #f0f0f5; margin-bottom: 20px; }
 
   /* ── Category grid ── */
   .cat-row {
@@ -528,9 +528,14 @@ function buildCard(id, section, cat, rank, isMulti) {
     rmBtn.title = '从此分类移除';
     rmBtn.addEventListener('click', e => {
       e.stopPropagation();
-      const arr = state.s1[cat];
+      const arr = state[section][cat];
       const i   = arr.indexOf(id);
       if (i !== -1) arr.splice(i, 1);
+      // 若该功能已不存在于当前分类法的任何分类中，自动归入未分类
+      const appearsAnywhere = Object.values(state[section]).some(a => a.includes(id));
+      if (!appearsAnywhere && !state[section].misc.includes(id)) {
+        state[section].misc.push(id);
+      }
       saveState();
       render();
     });
