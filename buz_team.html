@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buz 团队架构</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    background: #f5f5f7;
+    min-height: 100vh;
+    padding: 40px 24px 72px;
+    color: #1d1d1f;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 22px;
+    font-weight: 600;
+    color: #1d1d1f;
+    margin-bottom: 20px;
+    letter-spacing: -0.3px;
+  }
+
+  /* ── Mode toggle ── */
+  .mode-toggle {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 32px;
+  }
+  .toggle-wrap {
+    display: flex;
+    background: #e5e5ea;
+    border-radius: 20px;
+    padding: 3px;
+  }
+  .toggle-btn {
+    padding: 6px 20px;
+    border-radius: 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: #6e6e73;
+    transition: background 0.2s, color 0.2s;
+  }
+  .toggle-btn.active {
+    background: #fff;
+    color: #1d1d1f;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
+
+  /* ── CEO block ── */
+  .ceo-block {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  .ceo-card {
+    width: 136px;
+    height: 64px;
+    background: #1d1d1f;
+    border-radius: 10px;
+    border: 1px solid #1d1d1f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .ceo-card .cn { font-size: 13px; font-weight: 500; color: #f5f5f7; }
+  .ceo-card .en { font-size: 11px; color: #6e6e73; margin-top: 2px; }
+
+  /* ── Department grid ── */
+  .dept-grid {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .dept-row {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 12px;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  /* ── Dept block ── */
+  .dept-block {
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .dept-label {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    padding: 5px 16px;
+    border-radius: 20px;
+    align-self: center;
+  }
+
+  /* Dept block colors */
+  .b-pm      { background: #f5f3ff; }
+  .b-pm .dept-label      { background: #ede9fe; color: #6d28d9; }
+
+  .b-qa      { background: #f0fdf4; }
+  .b-qa .dept-label      { background: #dcfce7; color: #15803d; }
+
+  .b-dev     { background: #eff6ff; }
+  .b-dev .dept-label     { background: #dbeafe; color: #1d4ed8; }
+
+  .b-design  { background: #fdf2f8; }
+  .b-design .dept-label  { background: #fce7f3; color: #be185d; }
+
+  .b-market  { background: #f0fdf4; }
+  .b-market .dept-label  { background: #dcfce7; color: #065f46; }
+
+  .b-creative{ background: #fff7ed; }
+  .b-creative .dept-label{ background: #ffedd5; color: #c2410c; }
+
+  .b-data    { background: #fffbeb; }
+  .b-data .dept-label    { background: #fef3c7; color: #92400e; }
+
+  .b-ux      { background: #fff1f2; }
+  .b-ux .dept-label      { background: #ffe4e6; color: #9f1239; }
+
+  .b-bp      { background: #f8fafc; }
+  .b-bp .dept-label      { background: #e2e8f0; color: #475569; }
+
+  /* ── Person card ── */
+  .card {
+    width: 136px;
+    height: 64px;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #e5e5ea;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: default;
+    transition: border-color 0.15s;
+  }
+  .card:hover { border-color: #aeaeb2; }
+  .card .cn {
+    font-size: 13px;
+    font-weight: 500;
+    color: #1d1d1f;
+    max-width: 124px;
+    text-align: center;
+    word-break: break-word;
+    line-height: 1.3;
+  }
+  .card .en { font-size: 11px; color: #86868b; margin-top: 2px; }
+  .card .badge {
+    font-size: 9px;
+    font-weight: 600;
+    border-radius: 20px;
+    padding: 1px 7px;
+    margin-top: 3px;
+    letter-spacing: 0.3px;
+  }
+  .tl { background: #dbeafe; color: #1d4ed8; }
+  .dl { background: #fce7f3; color: #be185d; }
+
+  /* AI card */
+  .card.ai-card {
+    border: 1px dashed #a78bfa;
+    background: #faf5ff;
+  }
+  .card.ai-card .cn    { color: #6d28d9; }
+  .card.ai-card .badge { background: #ede9fe; color: #6d28d9; }
+
+  /* card stack */
+  .cards {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ── Sub-groups inside a dept block ── */
+  .sub-row { display: flex; gap: 8px; }
+  .sub-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .sub-label {
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 6px;
+    padding: 4px 10px;
+    letter-spacing: 0.2px;
+    text-align: center;
+    width: 136px;
+  }
+  .s-ios     { background: #e0f2fe; color: #0369a1; }
+  .s-android { background: #dcfce7; color: #15803d; }
+  .s-server  { background: #ede9fe; color: #6d28d9; }
+  .s-brand   { background: #fdf4ff; color: #86198f; }
+  .s-product { background: #fce7f3; color: #be185d; }
+
+  /* Future-only */
+  .future-only { display: none; }
+  body.future .future-only { display: flex; }
+</style>
+</head>
+<body class="current" id="body">
+
+<h1>Buz 团队架构</h1>
+
+<div class="mode-toggle">
+  <div class="toggle-wrap">
+    <button class="toggle-btn active" id="btn-current" onclick="setMode('current')">现况</button>
+    <button class="toggle-btn" id="btn-future" onclick="setMode('future')">考虑尝试</button>
+  </div>
+</div>
+
+<!-- CEO -->
+<div class="ceo-block">
+  <div class="ceo-card">
+    <div class="cn">林桂荣</div>
+    <div class="en">James Lin</div>
+  </div>
+</div>
+
+<!-- Dept grid -->
+<div class="dept-grid">
+
+  <!-- Row 1 -->
+  <div class="dept-row">
+
+    <!-- 产品经理 -->
+    <div class="dept-block b-pm">
+      <div class="dept-label">产品经理</div>
+      <div class="cards">
+        <div class="card"><div class="cn">曾敏杰</div><div class="en">Jay Zeng</div></div>
+      </div>
+    </div>
+
+    <!-- QA -->
+    <div class="dept-block b-qa">
+      <div class="dept-label">QA</div>
+      <div class="cards">
+        <div class="card"><div class="cn">李彤彤</div><div class="en">Tara Li</div></div>
+        <div class="card"><div class="cn">张志明</div><div class="en">Barry Zhang</div></div>
+      </div>
+    </div>
+
+    <!-- 研发 -->
+    <div class="dept-block b-dev">
+      <div class="dept-label">研发</div>
+      <div class="cards">
+        <div class="card">
+          <div class="cn">黎思茵</div>
+          <div class="en">Cyne Li</div>
+          <div class="badge tl">Tech Lead</div>
+        </div>
+      </div>
+      <div class="sub-row">
+        <div class="sub-col">
+          <div class="sub-label s-ios">iOS 客户端</div>
+          <div class="card"><div class="cn">杜焕安</div><div class="en">Peace Du</div></div>
+          <div class="card"><div class="cn">张源明</div><div class="en">Source Zhang</div></div>
+        </div>
+        <div class="sub-col">
+          <div class="sub-label s-android">安卓客户端</div>
+          <div class="card"><div class="cn">曾荣基</div><div class="en">Vincent Zeng</div></div>
+          <div class="card"><div class="cn">陈有胜</div><div class="en">Victor Chen</div></div>
+        </div>
+        <div class="sub-col">
+          <div class="sub-label s-server">服务端</div>
+          <div class="card"><div class="cn">曾轼麟</div><div class="en">Shilin Zeng</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 设计 -->
+    <div class="dept-block b-design">
+      <div class="dept-label">设计</div>
+      <div class="cards">
+        <div class="card">
+          <div class="cn">Yiwei Huang</div>
+          <div class="badge dl">Design Lead</div>
+        </div>
+      </div>
+      <div class="sub-row">
+        <div class="sub-col">
+          <div class="sub-label s-product">产品设计</div>
+          <div class="card"><div class="cn">金烨鑫</div><div class="en">Mattia Jin</div></div>
+          <div class="card future-only ai-card" style="flex-direction:column;">
+            <div class="cn">UI 设计师</div>
+            <div class="badge">人工智能</div>
+          </div>
+        </div>
+        <div class="sub-col">
+          <div class="sub-label s-brand">品牌 &amp; IP</div>
+          <div class="card"><div class="cn">Joycelyn Leong</div><div class="en">Joyce</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Row 2 -->
+  <div class="dept-row">
+
+    <!-- 市场 -->
+    <div class="dept-block b-market">
+      <div class="dept-label">市场</div>
+      <div class="cards">
+        <div class="card"><div class="cn">Amanda Chen</div></div>
+        <div class="card"><div class="cn">Tan Tse Teng</div></div>
+        <div class="card"><div class="cn">Indira Lin Mahendran</div></div>
+      </div>
+    </div>
+
+    <!-- 创意 -->
+    <div class="dept-block b-creative">
+      <div class="dept-label">创意</div>
+      <div class="cards">
+        <div class="card"><div class="cn">曹思凡</div><div class="en">Sivan Cao</div></div>
+      </div>
+    </div>
+
+    <!-- 数据 -->
+    <div class="dept-block b-data">
+      <div class="dept-label">数据</div>
+      <div class="cards">
+        <div class="card"><div class="cn">付荑曼</div><div class="en">Celia Fu</div></div>
+      </div>
+    </div>
+
+    <!-- 用户研究 -->
+    <div class="dept-block b-ux">
+      <div class="dept-label">用户研究</div>
+      <div class="cards">
+        <div class="card"><div class="cn">Trixi Lim</div></div>
+      </div>
+    </div>
+
+    <!-- BP -->
+    <div class="dept-block b-bp">
+      <div class="dept-label">BP</div>
+      <div class="cards">
+        <div class="card"><div class="cn">钟俐思</div><div class="en">Liz Zhong</div></div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+  function setMode(mode) {
+    document.getElementById('body').className = mode;
+    document.getElementById('btn-current').classList.toggle('active', mode === 'current');
+    document.getElementById('btn-future').classList.toggle('active', mode === 'future');
+  }
+</script>
+
+</body>
+</html>

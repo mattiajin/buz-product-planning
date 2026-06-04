@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buz 2.0 产品规划</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    background: #f5f5f7;
+    min-height: 100vh;
+    color: #1d1d1f;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    background: #1d1d1f;
+    padding: 80px 40px 64px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .hero-eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #6e6e73;
+    margin-bottom: 16px;
+  }
+  .hero-title {
+    font-size: 48px;
+    font-weight: 700;
+    color: #f5f5f7;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+  .hero-title span {
+    color: #86868b;
+    font-weight: 400;
+  }
+  .hero-date {
+    font-size: 14px;
+    color: #48484a;
+    margin-top: 8px;
+  }
+
+  /* ── Content ── */
+  .content {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 56px 24px 80px;
+    width: 100%;
+    flex: 1;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #aeaeb2;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  /* ── Cards grid ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .doc-card {
+    background: #fff;
+    border: 1px solid #e5e5ea;
+    border-radius: 16px;
+    padding: 28px;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+    cursor: pointer;
+  }
+  .doc-card:hover {
+    border-color: #aeaeb2;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.07);
+    transform: translateY(-2px);
+  }
+
+  .doc-card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+
+  .doc-card-body { flex: 1; }
+  .doc-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1d1d1f;
+    margin-bottom: 4px;
+  }
+  .doc-card-desc {
+    font-size: 13px;
+    color: #86868b;
+    line-height: 1.5;
+  }
+  .doc-card-arrow {
+    font-size: 18px;
+    color: #c7c7cc;
+    align-self: flex-end;
+    transition: color 0.15s, transform 0.15s;
+  }
+  .doc-card:hover .doc-card-arrow {
+    color: #1d1d1f;
+    transform: translateX(3px);
+  }
+
+  /* Card colors */
+  .icon-team    { background: #e8f0fe; }
+  .icon-feature { background: #faf5ff; }
+  .icon-tbd     { background: #f5f5f7; border: 1px dashed #d2d2d7; }
+
+  /* Placeholder card (coming soon) */
+  .doc-card.tbd {
+    background: #fafafa;
+    border-style: dashed;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+
+  /* ── Footer ── */
+  footer {
+    text-align: center;
+    padding: 24px;
+    font-size: 12px;
+    color: #aeaeb2;
+    border-top: 1px solid #e5e5ea;
+  }
+
+  @media (max-width: 600px) {
+    .hero-title { font-size: 32px; }
+    .cards-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-eyebrow">Product Planning</div>
+  <div class="hero-title">Buz <span>2.0</span><br>产品规划</div>
+  <div class="hero-date" id="heroDate"></div>
+</div>
+
+<!-- Content -->
+<div class="content">
+  <div class="section-label">文档目录</div>
+
+  <div class="cards-grid">
+
+    <a class="doc-card" href="buz_team.html">
+      <div class="doc-card-icon icon-team">👥</div>
+      <div class="doc-card-body">
+        <div class="doc-card-title">团队架构</div>
+        <div class="doc-card-desc">Buz 内部团队组织结构，包含各部门成员与职能分工</div>
+      </div>
+      <div class="doc-card-arrow">→</div>
+    </a>
+
+    <a class="doc-card" href="buz_features.html">
+      <div class="doc-card-icon icon-feature">🗂</div>
+      <div class="doc-card-body">
+        <div class="doc-card-title">核心功能分类</div>
+        <div class="doc-card-desc">23 项核心功能的动机场景分类与信息载体分类，支持拖拽排序</div>
+      </div>
+      <div class="doc-card-arrow">→</div>
+    </a>
+
+    <div class="doc-card tbd">
+      <div class="doc-card-icon icon-tbd">📋</div>
+      <div class="doc-card-body">
+        <div class="doc-card-title">产品路线图</div>
+        <div class="doc-card-desc">即将加入</div>
+      </div>
+    </div>
+
+    <div class="doc-card tbd">
+      <div class="doc-card-icon icon-tbd">📊</div>
+      <div class="doc-card-body">
+        <div class="doc-card-title">数据与用研洞察</div>
+        <div class="doc-card-desc">即将加入</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>Buz 2.0 · 内部文档</footer>
+
+<script>
+  const d = new Date();
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('heroDate').textContent =
+    months[d.getMonth()] + ' ' + d.getFullYear();
+</script>
+
+</body>
+</html>

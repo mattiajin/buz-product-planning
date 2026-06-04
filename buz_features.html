@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buz 核心功能分类</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    background: #f5f5f7;
+    min-height: 100vh;
+    padding: 40px 24px 72px;
+    color: #1d1d1f;
+  }
+
+  /* ── Header ── */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1400px;
+    margin: 0 auto 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .page-title { text-align: center; flex: 1; }
+  h1 { font-size: 22px; font-weight: 600; color: #1d1d1f; margin-bottom: 4px; letter-spacing: -0.3px; }
+  .subtitle { font-size: 13px; color: #86868b; }
+
+  .header-actions { display: flex; align-items: center; gap: 8px; }
+  .save-badge { font-size: 11px; color: #34c759; font-weight: 500; opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
+  .save-badge.show { opacity: 1; }
+  .btn-reset {
+    font-size: 12px; font-weight: 500; color: #86868b;
+    background: #fff; border: 1px solid #d2d2d7; border-radius: 8px;
+    padding: 6px 14px; cursor: pointer; transition: color 0.15s, border-color 0.15s; white-space: nowrap;
+  }
+  .btn-reset:hover { color: #1d1d1f; border-color: #aeaeb2; }
+  .btn-primary {
+    font-size: 12px; font-weight: 500; color: #fff;
+    background: #1d1d1f; border: 1px solid #1d1d1f; border-radius: 8px;
+    padding: 6px 14px; cursor: pointer; transition: opacity 0.15s; white-space: nowrap;
+  }
+  .btn-primary:hover { opacity: 0.8; }
+
+  /* ── Version bar ── */
+  .version-bar {
+    max-width: 1400px;
+    margin: -12px auto 24px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #e5e5ea;
+    padding: 14px 18px;
+  }
+  .version-bar-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .version-bar-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #86868b;
+    white-space: nowrap;
+  }
+  .version-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1;
+  }
+  .version-empty {
+    font-size: 12px;
+    color: #c7c7cc;
+    font-style: italic;
+  }
+  .version-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #f5f5f7;
+    border: 1px solid #e5e5ea;
+    border-radius: 20px;
+    padding: 4px 6px 4px 12px;
+    font-size: 12px;
+    color: #1d1d1f;
+    cursor: default;
+    transition: border-color 0.15s;
+  }
+  .version-chip:hover { border-color: #aeaeb2; }
+  .version-chip-name { font-weight: 500; }
+  .version-chip-date { font-size: 10px; color: #aeaeb2; }
+  .version-chip-actions { display: flex; gap: 2px; }
+  .chip-btn {
+    font-size: 11px; font-weight: 500; border: none; border-radius: 12px;
+    padding: 2px 8px; cursor: pointer; transition: background 0.12s;
+  }
+  .chip-btn-load { background: #e5e5ea; color: #1d1d1f; }
+  .chip-btn-load:hover { background: #d2d2d7; }
+  .chip-btn-del  { background: transparent; color: #aeaeb2; }
+  .chip-btn-del:hover  { background: #fee2e2; color: #dc2626; }
+
+  /* Save form inline */
+  .save-form {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .save-form.open { display: flex; }
+  .save-form input {
+    flex: 1;
+    min-width: 160px;
+    max-width: 280px;
+    font-size: 13px;
+    font-family: inherit;
+    border: 1px solid #d2d2d7;
+    border-radius: 8px;
+    padding: 6px 12px;
+    outline: none;
+    color: #1d1d1f;
+    background: #fff;
+    transition: border-color 0.15s;
+  }
+  .save-form input:focus { border-color: #007aff; }
+  .save-form-btns { display: flex; gap: 6px; }
+  .btn-cancel {
+    font-size: 12px; font-weight: 500; color: #86868b;
+    background: #fff; border: 1px solid #d2d2d7; border-radius: 8px;
+    padding: 6px 12px; cursor: pointer;
+  }
+
+  /* ── Section ── */
+  .section {
+    max-width: 1400px;
+    margin: 0 auto 28px;
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e5e5ea;
+    padding: 24px;
+  }
+  .section-no { font-size: 11px; font-weight: 600; color: #aeaeb2; letter-spacing: 0.6px; text-transform: uppercase; margin-bottom: 3px; }
+  .section-name { font-size: 17px; font-weight: 600; color: #1d1d1f; margin-bottom: 4px; }
+  .section-note { font-size: 12px; color: #86868b; margin-bottom: 18px; }
+
+  /* ── Category grid ── */
+  .cat-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+
+  .cat-col {
+    border-radius: 12px;
+    padding: 12px;
+    min-height: 80px;
+    transition: box-shadow 0.15s, transform 0.12s;
+  }
+  .cat-col.drag-over { box-shadow: 0 0 0 2px #007aff; transform: scale(1.01); }
+
+  .cat-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; user-select: none; }
+  .cat-label { font-size: 12px; font-weight: 600; border-radius: 20px; padding: 4px 11px; letter-spacing: 0.2px; white-space: nowrap; }
+  .cat-count { font-size: 11px; color: #aeaeb2; font-weight: 500; }
+  .cat-def { font-size: 10px; color: #aeaeb2; margin-bottom: 8px; line-height: 1.4; padding-left: 2px; }
+
+  .drop-hint { font-size: 11px; color: #c7c7cc; text-align: center; padding: 10px 0; border: 1px dashed #d2d2d7; border-radius: 8px; display: none; }
+  .cat-col.empty .drop-hint { display: block; }
+
+  /* ── Insert line ── */
+  .insert-line { height: 3px; background: transparent; border-radius: 2px; margin: 1px 0; transition: background 0.1s; pointer-events: none; }
+  .insert-line.show { background: #007aff; }
+
+  /* ── Feature card ── */
+  .feat-card {
+    background: #fff;
+    border: 1px solid #e5e5ea;
+    border-radius: 8px;
+    padding: 7px 8px 7px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #1d1d1f;
+    line-height: 1.4;
+    margin-bottom: 4px;
+    cursor: grab;
+    user-select: none;
+    transition: border-color 0.15s, opacity 0.15s, box-shadow 0.15s;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  .feat-card:last-child { margin-bottom: 0; }
+  .feat-card:hover { border-color: #aeaeb2; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+  .feat-card:active { cursor: grabbing; }
+  .feat-card.dragging { opacity: 0.3; }
+  .feat-card.is-sub { background: #fafafa; border-style: dashed; color: #3c3c43; }
+
+  .feat-rank {
+    flex-shrink: 0; min-width: 18px; height: 18px; border-radius: 5px;
+    background: #f2f2f7; color: #aeaeb2; font-size: 10px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; margin-top: 1px;
+  }
+  .feat-card.is-sub .feat-rank { background: #ebebf0; }
+
+  .feat-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+  .feat-name { font-size: 12px; line-height: 1.4; }
+  .parent-tag { font-size: 10px; color: #aeaeb2; font-weight: 400; }
+
+  /* Tags showing other categories (s1 multi-mode) */
+  .other-cats { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 3px; }
+  .other-cat-tag {
+    font-size: 9px; font-weight: 600; border-radius: 4px; padding: 1px 5px;
+    opacity: 0.75; white-space: nowrap;
+  }
+
+  /* Remove button (s1 only) */
+  .card-remove {
+    flex-shrink: 0; width: 16px; height: 16px; border-radius: 4px;
+    border: none; background: transparent; color: #c7c7cc;
+    font-size: 13px; line-height: 1; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.1s, color 0.1s; margin-top: 1px; padding: 0;
+  }
+  .card-remove:hover { background: #fee2e2; color: #dc2626; }
+
+  /* ── Section 1 color themes ── */
+  .c1-eff  { background: #eff6ff; } .c1-eff .cat-label  { background: #dbeafe; color: #1d4ed8; }
+  .c1-soc  { background: #f0fdf4; } .c1-soc .cat-label  { background: #dcfce7; color: #15803d; }
+  .c1-ent  { background: #fff7ed; } .c1-ent .cat-label  { background: #ffedd5; color: #c2410c; }
+  .c1-exp  { background: #fdf2f8; } .c1-exp .cat-label  { background: #fce7f3; color: #be185d; }
+  .c1-misc { background: #f8fafc; } .c1-misc .cat-label { background: #e2e8f0; color: #475569; }
+
+  /* Inline other-cat tag colors — s1 */
+  .tag-eff  { background: #dbeafe; color: #1d4ed8; }
+  .tag-soc  { background: #dcfce7; color: #15803d; }
+  .tag-ent  { background: #ffedd5; color: #c2410c; }
+  .tag-exp  { background: #fce7f3; color: #be185d; }
+  .tag-misc { background: #e2e8f0; color: #475569; }
+  /* s2 */
+  .tag-s2-audio { background: #dbeafe; color: #1d4ed8; }
+  .tag-s2-vis   { background: #dcfce7; color: #15803d; }
+  .tag-s2-text  { background: #fef3c7; color: #92400e; }
+  .tag-s2-ai    { background: #ede9fe; color: #6d28d9; }
+
+  /* ── Section 2 color themes ── */
+  .c2-audio { background: #eff6ff; } .c2-audio .cat-label { background: #dbeafe; color: #1d4ed8; }
+  .c2-vis   { background: #f0fdf4; } .c2-vis .cat-label   { background: #dcfce7; color: #15803d; }
+  .c2-text  { background: #fffbeb; } .c2-text .cat-label  { background: #fef3c7; color: #92400e; }
+  .c2-ai    { background: #faf5ff; } .c2-ai .cat-label    { background: #ede9fe; color: #6d28d9; }
+  .c2-misc  { background: #f8fafc; } .c2-misc .cat-label  { background: #e2e8f0; color: #475569; }
+
+  @media (max-width: 1100px) { .cat-row { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 720px)  { .cat-row { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px)  { .cat-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div style="width:130px"></div>
+  <div class="page-title">
+    <h1>Buz 核心功能分类</h1>
+    <p class="subtitle">23 项核心功能 · 两种分类视角 · 拖拽调整后自动保存</p>
+  </div>
+  <div class="header-actions">
+    <span class="save-badge" id="saveBadge">✓ 已自动保存</span>
+    <button class="btn-primary" onclick="openSaveForm()">保存版本</button>
+    <button class="btn-reset" onclick="resetState()">恢复默认</button>
+  </div>
+</div>
+
+<!-- Version bar -->
+<div class="version-bar">
+  <div class="version-bar-top">
+    <span class="version-bar-label">版本历史</span>
+    <div class="version-list" id="versionList">
+      <span class="version-empty">暂无保存的版本</span>
+    </div>
+  </div>
+  <div class="save-form" id="saveForm">
+    <input type="text" id="versionNameInput" placeholder="版本名称，如 v1.0 或 2026-06-04" />
+    <div class="save-form-btns">
+      <button class="btn-primary" onclick="confirmSave()">确认保存</button>
+      <button class="btn-cancel" onclick="closeSaveForm()">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Section 1 -->
+<div class="section">
+  <div class="section-no">分类法 1</div>
+  <div class="section-name">动机场景分类法</div>
+  <div class="cat-row" id="s1-row">
+    <div class="cat-col c1-eff"  data-section="s1" data-cat="efficiency">
+      <div class="cat-header"><div class="cat-label">工具效率</div><div class="cat-count"></div></div>
+      <div class="cat-def">完成任务、解决问题、获取信息</div>
+      <div class="drop-hint">拖到这里</div>
+    </div>
+    <div class="cat-col c1-soc"  data-section="s1" data-cat="social">
+      <div class="cat-header"><div class="cat-label">社交关系</div><div class="cat-count"></div></div>
+      <div class="cat-def">与具体人互动、维系关系、共享存在</div>
+      <div class="drop-hint">拖到这里</div>
+    </div>
+    <div class="cat-col c1-ent"  data-section="s1" data-cat="entertainment">
+      <div class="cat-header"><div class="cat-label">娱乐消遣</div><div class="cat-count"></div></div>
+      <div class="cat-def">放松、快乐、消磨时间、好玩</div>
+      <div class="drop-hint">拖到这里</div>
+    </div>
+    <div class="cat-col c1-exp"  data-section="s1" data-cat="expression">
+      <div class="cat-header"><div class="cat-label">自我表达</div><div class="cat-count"></div></div>
+      <div class="cat-def">展示自己、记录生活、塑造形象、表达情绪</div>
+      <div class="drop-hint">拖到这里</div>
+    </div>
+    <div class="cat-col c1-misc" data-section="s1" data-cat="misc">
+      <div class="cat-header"><div class="cat-label">未分类</div><div class="cat-count"></div></div>
+      <div class="cat-def">暂无法明确归类</div>
+      <div class="drop-hint">拖到这里</div>
+    </div>
+  </div>
+</div>
+
+<!-- Section 2 -->
+<div class="section">
+  <div class="section-no">分类法 2</div>
+  <div class="section-name">信息载体分类法</div>
+  <div class="cat-row" id="s2-row">
+    <div class="cat-col c2-audio" data-section="s2" data-cat="audio">
+      <div class="cat-header"><div class="cat-label">音频</div><div class="cat-count"></div></div>
+      <div class="cat-def">主要载体为声音</div>
+      <div class="drop-hint">拖到这里</div>
+    </div>
+    <div class="cat-col c2-vis"   data-section="s2" data-cat="visual">
+      <div class="cat-header"><div class="cat-label">影像</div><div class="cat-count"></div></div>
+      <div class="cat-def">主要载体为静态图片或动态图像</div>
+      <div class="drop-hint">拖到这里</div>
+    </div>
+    <div class="cat-col c2-text"  data-section="s2" data-cat="text">
+      <div class="cat-header"><div class="cat-label">文本/数据</div><div class="cat-count"></div></div>
+      <div class="cat-def">主要载体为文字或结构化信息</div>
+      <div class="drop-hint">拖到这里</div>
+    </div>
+    <div class="cat-col c2-ai"    data-section="s2" data-cat="ai">
+      <div class="cat-header"><div class="cat-label">AI</div><div class="cat-count"></div></div>
+      <div class="cat-def">核心能力依赖大模型 / 生成式 AI / 智能识别</div>
+      <div class="drop-hint">拖到这里</div>
+    </div>
+    <div class="cat-col c2-misc"  data-section="s2" data-cat="misc">
+      <div class="cat-header"><div class="cat-label">未分类</div><div class="cat-count"></div></div>
+      <div class="cat-def">暂无法明确归类</div>
+      <div class="drop-hint">拖到这里</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Feature definitions ── */
+const FEATURES = {
+  ptt:            { name: '即按即说（Push to Talk）' },
+  voicemoji:      { name: '语音表情（Voicemoji）' },
+  vf:             { name: '语音滤镜（Voice Filters）' },
+  vf_trans:       { name: '多语言声音滤镜（Voice Filter - Language）', parentId: 'vf' },
+  vf_call:        { name: '语音、视频通话实时变声', parentId: 'vf' },
+  vcall:          { name: '语音通话' },
+  videocall:      { name: '视频通话' },
+  liveplace:      { name: 'Live Place' },
+  lp_game:        { name: 'Live Place 游戏', parentId: 'liveplace' },
+  screenshare:    { name: '屏幕共享' },
+  media_send:     { name: '媒体发送（图片文件等）' },
+  share_contact:  { name: '分享联系人' },
+  autoplay:       { name: '音频自动播报（AutoPlay）' },
+  moment_log:     { name: 'Moment Log' },
+  buz_shortcut:   { name: 'Buz 快捷入口（蓝球）' },
+  watch:          { name: '手表端支持' },
+  vstory:         { name: '语音动态（Voice Story）' },
+  aloha:          { name: 'Aloha Chatbot' },
+  translator_bot: { name: '双语翻译机器人（Chatbot）' },
+  add_friend:     { name: '搜索与添加好友' },
+  tts:            { name: '文本转语音（TTS）' },
+  ai_meme:        { name: 'AI 生成表情包' },
+  map:            { name: '地图（Live Map）' },
+};
+
+/* Cat meta for "other categories" tags */
+const CAT_META = {
+  s1: {
+    efficiency:    { label: '工具效率', tagClass: 'tag-eff'   },
+    social:        { label: '社交关系', tagClass: 'tag-soc'   },
+    entertainment: { label: '娱乐消遣', tagClass: 'tag-ent'   },
+    expression:    { label: '自我表达', tagClass: 'tag-exp'   },
+    misc:          { label: '未分类',   tagClass: 'tag-misc'  },
+  },
+  s2: {
+    audio:   { label: '音频',     tagClass: 'tag-s2-audio' },
+    visual:  { label: '影像',     tagClass: 'tag-s2-vis'   },
+    text:    { label: '文本/数据',tagClass: 'tag-s2-text'  },
+    ai:      { label: 'AI',       tagClass: 'tag-s2-ai'    },
+    misc:    { label: '未分类',   tagClass: 'tag-misc'     },
+  },
+};
+
+/* ── Default state ── */
+const DEFAULT_STATE = {
+  s1: {
+    efficiency:    ['ptt','vf_trans','vcall','videocall','screenshare','media_send','share_contact','buz_shortcut','watch','aloha','translator_bot','add_friend','tts','map'],
+    social:        ['ptt','voicemoji','vcall','videocall','liveplace','lp_game','screenshare','media_send','share_contact','moment_log','vstory','add_friend','map'],
+    entertainment: ['vf','vf_call','liveplace','lp_game','autoplay','aloha','ai_meme'],
+    expression:    ['voicemoji','vf','vf_call','moment_log','vstory','ai_meme'],
+    misc:          [],
+  },
+  s2: {
+    audio:   ['ptt','voicemoji','vf','vcall','autoplay','vstory'],
+    visual:  ['videocall','liveplace','lp_game','screenshare','media_send','moment_log'],
+    text:    ['share_contact','add_friend','map'],
+    ai:      ['vf_trans','vf_call','aloha','translator_bot','tts','ai_meme'],
+    misc:    ['buz_shortcut','watch'],
+  }
+};
+
+/* ── Persistence ── */
+const STORAGE_KEY = 'buz-features-v3';
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return deepClone(DEFAULT_STATE);
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  const badge = document.getElementById('saveBadge');
+  badge.classList.add('show');
+  clearTimeout(badge._t);
+  badge._t = setTimeout(() => badge.classList.remove('show'), 1800);
+}
+
+function resetState() {
+  if (!confirm('恢复默认分类？当前修改将清除。')) return;
+  state = deepClone(DEFAULT_STATE);
+  saveState();
+  render();
+}
+
+function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
+
+let state = loadState();
+
+/* ── Render ── */
+function render() {
+  document.querySelectorAll('.cat-col').forEach(col => {
+    const section = col.dataset.section;
+    const cat     = col.dataset.cat;
+    const ids     = state[section][cat];
+
+    col.querySelectorAll('.feat-card, .insert-line').forEach(el => el.remove());
+    col.querySelector('.cat-count').textContent = ids.length + ' 项';
+    col.classList.toggle('empty', ids.length === 0);
+
+    const isMulti = true;
+
+    ids.forEach((id, idx) => {
+      col.appendChild(buildInsertLine(section, cat, idx));
+      col.appendChild(buildCard(id, section, cat, idx + 1, isMulti));
+    });
+    col.appendChild(buildInsertLine(section, cat, ids.length));
+  });
+}
+
+function buildCard(id, section, cat, rank, isMulti) {
+  const feat = FEATURES[id];
+  const el   = document.createElement('div');
+  el.className  = 'feat-card' + (feat.parentId ? ' is-sub' : '');
+  el.draggable  = true;
+  el.dataset.id = id;
+  el.dataset.section = section;
+  el.dataset.cat = cat;
+
+  // Rank badge
+  const rankEl = document.createElement('div');
+  rankEl.className = 'feat-rank';
+  rankEl.textContent = rank;
+  el.appendChild(rankEl);
+
+  // Text body
+  const body = document.createElement('div');
+  body.className = 'feat-body';
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'feat-name';
+  nameEl.textContent = feat.name;
+  body.appendChild(nameEl);
+
+  if (feat.parentId) {
+    const tag = document.createElement('span');
+    tag.className = 'parent-tag';
+    tag.textContent = '↳ ' + FEATURES[feat.parentId].name.split('（')[0];
+    body.appendChild(tag);
+  }
+
+  // Show other categories this feature also belongs to
+  const sectionMeta = CAT_META[section];
+  const otherCats = Object.entries(state[section])
+    .filter(([c, ids]) => c !== cat && ids.includes(id));
+  if (otherCats.length) {
+    const tagsRow = document.createElement('div');
+    tagsRow.className = 'other-cats';
+    otherCats.forEach(([c]) => {
+      const t = document.createElement('span');
+      t.className = 'other-cat-tag ' + (sectionMeta[c]?.tagClass || 'tag-misc');
+      t.textContent = sectionMeta[c]?.label || c;
+      tagsRow.appendChild(t);
+    });
+    body.appendChild(tagsRow);
+  }
+
+  el.appendChild(body);
+
+  // Remove button
+  if (isMulti) {
+    const rmBtn = document.createElement('button');
+    rmBtn.className = 'card-remove';
+    rmBtn.textContent = '×';
+    rmBtn.title = '从此分类移除';
+    rmBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const arr = state.s1[cat];
+      const i   = arr.indexOf(id);
+      if (i !== -1) arr.splice(i, 1);
+      saveState();
+      render();
+    });
+    el.appendChild(rmBtn);
+  }
+
+  el.addEventListener('dragstart', onDragStart);
+  el.addEventListener('dragend',   onDragEnd);
+  return el;
+}
+
+function buildInsertLine(section, cat, idx) {
+  const line = document.createElement('div');
+  line.className = 'insert-line';
+  line.dataset.section = section;
+  line.dataset.cat     = cat;
+  line.dataset.idx     = idx;
+  return line;
+}
+
+/* ── Drag & Drop ── */
+let drag = null;
+
+function onDragStart(e) {
+  drag = {
+    id:      e.currentTarget.dataset.id,
+    section: e.currentTarget.dataset.section,
+    cat:     e.currentTarget.dataset.cat,
+  };
+  e.dataTransfer.effectAllowed = 'move';
+  setTimeout(() => e.currentTarget.classList.add('dragging'), 0);
+}
+
+function onDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+  clearInsertLines();
+  drag = null;
+}
+
+function clearInsertLines() {
+  document.querySelectorAll('.insert-line.show').forEach(l => l.classList.remove('show'));
+}
+
+function getNearestInsertLine(col, clientY) {
+  const cards = [...col.querySelectorAll('.feat-card')];
+  const lines = [...col.querySelectorAll('.insert-line')];
+  if (!lines.length) return null;
+  if (!cards.length) return lines[0];
+  for (let i = 0; i < cards.length; i++) {
+    const rect = cards[i].getBoundingClientRect();
+    if (clientY < rect.top + rect.height / 2) return lines[i];
+  }
+  return lines[lines.length - 1];
+}
+
+document.querySelectorAll('.cat-col').forEach(col => {
+
+  col.addEventListener('dragover', e => {
+    if (!drag || drag.section !== col.dataset.section) return;
+    e.preventDefault();
+    col.classList.add('drag-over');
+    clearInsertLines();
+    const best = getNearestInsertLine(col, e.clientY);
+    if (best) best.classList.add('show');
+  });
+
+  col.addEventListener('dragleave', e => {
+    if (!col.contains(e.relatedTarget)) {
+      col.classList.remove('drag-over');
+      clearInsertLines();
+    }
+  });
+
+  col.addEventListener('drop', e => {
+    e.preventDefault();
+    col.classList.remove('drag-over');
+    if (!drag || drag.section !== col.dataset.section) return;
+
+    const targetSection = col.dataset.section;
+    const targetCat     = col.dataset.cat;
+    const isMulti       = targetSection === 's1';
+
+    const activeLine = col.querySelector('.insert-line.show');
+    let insertIdx    = state[targetSection][targetCat].length;
+    if (activeLine) insertIdx = parseInt(activeLine.dataset.idx);
+
+    // Both sections: additive multi-category
+    const arr = state[targetSection][targetCat];
+    if (arr.includes(drag.id)) {
+      // Already in this column — reorder
+      const srcIdx = arr.indexOf(drag.id);
+      arr.splice(srcIdx, 1);
+      if (srcIdx < insertIdx) insertIdx--;
+      arr.splice(Math.max(0, insertIdx), 0, drag.id);
+    } else {
+      // New to this column — add at insert position
+      arr.splice(insertIdx, 0, drag.id);
+    }
+
+    clearInsertLines();
+    saveState();
+    render();
+    drag = null;
+  });
+});
+
+/* ── Version management ── */
+const VER_KEY = 'buz-features-versions';
+
+function loadVersions() {
+  try { return JSON.parse(localStorage.getItem(VER_KEY)) || []; }
+  catch(e) { return []; }
+}
+
+function saveVersions(versions) {
+  localStorage.setItem(VER_KEY, JSON.stringify(versions));
+}
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-'
+    + String(d.getMonth() + 1).padStart(2, '0') + '-'
+    + String(d.getDate()).padStart(2, '0');
+}
+
+function openSaveForm() {
+  const form = document.getElementById('saveForm');
+  const input = document.getElementById('versionNameInput');
+  input.value = todayStr();
+  form.classList.add('open');
+  input.focus();
+  input.select();
+}
+
+function closeSaveForm() {
+  document.getElementById('saveForm').classList.remove('open');
+}
+
+document.getElementById('versionNameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmSave();
+  if (e.key === 'Escape') closeSaveForm();
+});
+
+function confirmSave() {
+  const name = document.getElementById('versionNameInput').value.trim();
+  if (!name) return;
+  const versions = loadVersions();
+  versions.unshift({
+    id:      Date.now().toString(36),
+    name,
+    savedAt: new Date().toISOString(),
+    state:   deepClone(state),
+  });
+  saveVersions(versions);
+  closeSaveForm();
+  renderVersions();
+}
+
+function deleteVersion(id) {
+  if (!confirm('删除这个版本？')) return;
+  const versions = loadVersions().filter(v => v.id !== id);
+  saveVersions(versions);
+  renderVersions();
+}
+
+function loadVersion(id) {
+  const versions = loadVersions();
+  const ver = versions.find(v => v.id === id);
+  if (!ver) return;
+  if (!confirm(`载入版本「${ver.name}」？当前未保存的改动将丢失。`)) return;
+  state = deepClone(ver.state);
+  saveState();
+  render();
+}
+
+function renderVersions() {
+  const versions = loadVersions();
+  const list = document.getElementById('versionList');
+  list.innerHTML = '';
+
+  if (!versions.length) {
+    list.innerHTML = '<span class="version-empty">暂无保存的版本</span>';
+    return;
+  }
+
+  versions.forEach(ver => {
+    const d    = new Date(ver.savedAt);
+    const date = d.getFullYear() + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + String(d.getDate()).padStart(2,'0')
+               + ' ' + String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+
+    const chip = document.createElement('div');
+    chip.className = 'version-chip';
+    chip.innerHTML = `
+      <span class="version-chip-name">${ver.name}</span>
+      <span class="version-chip-date">${date}</span>
+      <div class="version-chip-actions">
+        <button class="chip-btn chip-btn-load" onclick="loadVersion('${ver.id}')">载入</button>
+        <button class="chip-btn chip-btn-del"  onclick="deleteVersion('${ver.id}')">×</button>
+      </div>`;
+    list.appendChild(chip);
+  });
+}
+
+/* ── Init ── */
+render();
+renderVersions();
+</script>
+</body>
+</html>
