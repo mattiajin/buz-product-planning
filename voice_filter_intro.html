@@ -1,0 +1,2003 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Filter Intro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,800;1,400&display=swap" rel="stylesheet">
+<script src="assets/js/lottie.min.js"></script>
+<style>
+  @font-face {
+    font-family: 'buz';
+    src: url('assets/fonts/buz.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+
+  .icon { font-family: 'buz'; font-style: normal; line-height: 1; }
+
+  /* ── Fixed 375 × 812 phone frame ── */
+  .phone {
+    position: relative;
+    width: 375px;
+    height: 812px;
+    overflow: hidden;
+    border-radius: 50px;
+    background: #1a1a1a;
+  }
+
+  /* ── Lobby (desktop) layer ── */
+  .lobby {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: #1a1a1a;
+  }
+  .lobby-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background: rgba(0, 0, 0, 0.7);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s linear 0.45s;
+  }
+  .phone:not(.is-collapsed):not(.is-filter-mode) .lobby-overlay {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+      opacity 0.45s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s;
+  }
+  .phone.is-filter-mode .lobby-overlay {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  /* Lottie focus mask (Figma 511:18879) — dims lobby while icon lottie plays */
+  .lottie-focus-mask {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    background: rgba(0, 0, 0, 0.7);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.55s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s linear 0.55s;
+  }
+  .phone.is-lottie-focus .lottie-focus-mask {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.55s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s;
+  }
+
+  /* ── Home top: status bar + nav (Figma 511:18837 / 511:19076) ── */
+  .home-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 116px;
+    z-index: 3;
+    pointer-events: none;
+    background: #1a1a1a;
+  }
+  /* Status bar — white light-content (@4x 1500×176, display 375×44) */
+  .status-bar {
+    position: relative;
+    height: 44px;
+    width: 100%;
+    flex-shrink: 0;
+    background: #1a1a1a;
+  }
+  .status-bar-img {
+    display: block;
+    width: 375px;
+    height: 44px;
+  }
+
+  .home-nav {
+    position: relative;
+    height: 72px;
+    background: #1a1a1a;
+    pointer-events: none;
+  }
+  .home-nav-avatar-wrap {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+  }
+  .home-nav-avatar {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .home-nav-mode-dot {
+    position: absolute;
+    left: 31px;
+    top: calc(50% + 11px);
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 17px;
+    border: 4px solid #1a1a1a;
+    transition: opacity 0.3s ease, background 0.4s ease;
+  }
+  .home-nav-mode-dot--autoplay { background: #c4f353; }
+  .home-nav-mode-dot--quiet { background: #8f7dff; }
+  .home-nav-avatar-badge {
+    position: absolute;
+    left: 32px;
+    top: 5px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ff6c67;
+    border: 4px solid #1a1a1a;
+  }
+
+  .home-nav-mode-switch {
+    position: absolute;
+    left: 65px;
+    top: 80px;
+    transform: translateY(-50%);
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    height: 32px;
+    min-width: 106px;
+    padding: 3px;
+    border-radius: 68px;
+    gap: 3px;
+    border: none;
+    font: inherit;
+    cursor: pointer;
+    pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
+    background: #2b3020;
+    overflow: hidden;
+    transition: background 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .phone.is-quiet-mode .home-nav-mode-switch {
+    background: #312e48;
+  }
+  .phone.is-lottie-focus .home-nav-mode-switch {
+    z-index: 3;
+  }
+  .home-nav-mode-icon-slot {
+    position: relative;
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+  }
+  .home-nav-mode-icon {
+    position: absolute;
+    inset: 0;
+    border-radius: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    transition:
+      opacity 0.28s ease,
+      transform 0.4s cubic-bezier(0.32, 0.72, 0, 1),
+      background 0.4s ease;
+  }
+  .home-nav-mode-icon--autoplay {
+    background: #c4f353;
+    color: #000;
+    opacity: 1;
+    transform: scale(1);
+  }
+  .home-nav-mode-icon--quiet {
+    background: #8f7dff;
+    color: #000;
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  .phone.is-quiet-mode .home-nav-mode-icon--autoplay {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+  .phone.is-quiet-mode .home-nav-mode-icon--quiet {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .home-nav-mode-label-wrap {
+    position: relative;
+    flex-shrink: 0;
+    width: 67px;
+    height: 16px;
+    overflow: hidden;
+  }
+  .home-nav-mode-label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0.24px;
+    text-align: center;
+    white-space: nowrap;
+    transition:
+      opacity 0.28s ease,
+      transform 0.4s cubic-bezier(0.32, 0.72, 0, 1),
+      color 0.4s ease;
+  }
+  .home-nav-mode-label--autoplay {
+    color: #c4f353;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .home-nav-mode-label--quiet {
+    color: #8f7dff;
+    opacity: 0;
+    transform: translateY(100%);
+  }
+  .phone.is-quiet-mode .home-nav-mode-label--autoplay {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  .phone.is-quiet-mode .home-nav-mode-label--quiet {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .home-nav-mode-chevron {
+    flex-shrink: 0;
+    font-size: 16px;
+    line-height: 1;
+    color: #6e8636;
+    transition: color 0.4s ease;
+  }
+  .phone.is-quiet-mode .home-nav-mode-chevron {
+    color: #6055a3;
+  }
+
+  .phone.is-quiet-mode .home-nav-mode-dot--autoplay { display: none; }
+  .phone:not(.is-quiet-mode) .home-nav-mode-dot--quiet { display: none; }
+  .phone.is-quiet-mode .home-nav-avatar-badge { display: block; }
+  .phone:not(.is-quiet-mode) .home-nav-avatar-badge { display: none; }
+  .phone.is-quiet-mode .home-nav-search-badge { display: block; }
+
+  .phone:not(.is-collapsed):not(.is-filter-mode) .chat-frame {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .home-nav-icon-btn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+  }
+  .home-nav-icon-btn--search { right: 65px; }
+  .home-nav-icon-btn--contacts { right: 15px; }
+  .home-nav-icon {
+    position: absolute;
+    left: calc(50% - 12px);
+    top: calc(50% - 12px);
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+    line-height: 1;
+    color: #fff;
+    pointer-events: none;
+  }
+  .home-nav-search-badge {
+    position: absolute;
+    left: 30px;
+    top: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 375px;
+    background: #ff6c67;
+    border: 4px solid #1a1a1a;
+    display: none;
+  }
+
+  /* ── Chat Frame (Figma 511:19264) ── */
+  .chat-frame {
+    position: absolute;
+    left: 6px;
+    top: 116px;
+    width: 363px;
+    height: 368px;
+    z-index: 1;
+    border-radius: 30px;
+    background: #000;
+    overflow: hidden;
+  }
+  .chat-frame-carousel {
+    position: absolute;
+    left: 0;
+    top: 14px;
+    width: 100%;
+    height: 186px;
+  }
+  .chat-frame-select-ring {
+    position: absolute;
+    left: 131px;
+    top: 16px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.1) 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .chat-frame-item {
+    position: absolute;
+    text-align: center;
+  }
+  .chat-frame-item--new {
+    left: calc(50% - 111.5px);
+    top: calc(50% - 27px);
+    transform: translate(-50%, -50%);
+    width: 92px;
+    height: 132px;
+    opacity: 0.3;
+  }
+  .chat-frame-item--team {
+    left: calc(50% + 110.5px);
+    top: calc(50% - 27px);
+    transform: translate(-50%, -50%);
+    width: 92px;
+    height: 132px;
+    opacity: 0.3;
+  }
+  .chat-frame-item--matt {
+    left: calc(50% + 202.5px);
+    top: calc(50% - 27px);
+    transform: translate(-50%, -50%);
+    width: 92px;
+    height: 132px;
+    opacity: 0.3;
+  }
+  .chat-frame-item--active {
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    width: 130px;
+    height: 186px;
+    opacity: 1;
+    z-index: 1;
+  }
+  .chat-frame-avatar {
+    position: relative;
+    margin: 0 auto;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  .chat-frame-avatar--sm {
+    width: 64px;
+    height: 64px;
+    margin-top: 34px;
+  }
+  .chat-frame-avatar--lg {
+    width: 100px;
+    height: 100px;
+  }
+  .chat-frame-item--active .chat-frame-avatar--lg {
+    position: absolute;
+    left: 15px;
+    top: 16px;
+    z-index: 1;
+    display: block;
+    margin: 0;
+  }
+  .chat-frame-item--active .chat-frame-name--lg {
+    position: absolute;
+    left: 7px;
+    top: 129px;
+    z-index: 1;
+    width: 116px;
+    height: 22px;
+    margin: 0;
+  }
+  .chat-frame-avatar--new {
+    width: 64px;
+    height: 64px;
+    margin: 34px auto 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 18% 11%, #3d3d3d 0%, #292929 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    color: #fff;
+  }
+  .chat-frame-name {
+    display: block;
+    margin-top: 12px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.16px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chat-frame-name--lg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    margin-top: 8px;
+    font-size: 18px;
+    letter-spacing: 0.18px;
+    max-width: 140px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .chat-frame-name--lg .icon { font-size: 18px; color: #b8fa64; flex-shrink: 0; }
+  .chat-frame-unread {
+    position: absolute;
+    left: calc(50% + 28px);
+    top: calc(50% - 24px);
+    transform: translate(-50%, -50%);
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 24px;
+    background: #fff;
+    border: 6px solid #0d0d0d;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0.24px;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .phone.is-collapsed .chat-frame,
+  .phone.is-filter-mode .chat-frame {
+    z-index: 3;
+  }
+
+  .chat-frame-preview {
+    position: absolute;
+    left: 4px;
+    right: 4px;
+    top: 214px;
+    height: 150px;
+    border-radius: 26px;
+    background: #1f1f1f;
+    overflow: hidden;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .phone.is-collapsed .chat-frame-preview,
+  .phone.is-filter-mode .chat-frame-preview {
+    cursor: pointer;
+  }
+  .phone:not(.is-collapsed):not(.is-filter-mode) .chat-frame-preview {
+    pointer-events: none;
+  }
+  .phone.is-collapsed .chat-frame-preview:active,
+  .phone.is-filter-mode .chat-frame-preview:active {
+    background: #252525;
+  }
+  .chat-frame-preview::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0) 100%);
+  }
+  .chat-frame-msg {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px 0;
+    height: 92px;
+  }
+  .chat-frame-msg-text {
+    flex: 1;
+    font-family: 'Nunito', sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: 0.18px;
+    color: #fff;
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+  .chat-frame-voice-pill {
+    flex-shrink: 0;
+    width: 50px;
+    height: 50px;
+    border-radius: 30px;
+    background: #3d3d3d;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 14px 0 12px;
+  }
+  .chat-frame-voice-pill .voice-wave { width: 16px; height: 16px; }
+  .chat-frame-voice-pill .msg-duration {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.24px;
+    flex: none;
+  }
+  .chat-frame-footer {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    height: 46px;
+  }
+  .chat-frame-time {
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #808080;
+  }
+  .chat-frame-entry {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 88px;
+    height: 26px;
+    border-radius: 24px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #808080;
+  }
+  .chat-frame-entry-label {
+    margin-right: 2px;
+  }
+  .chat-frame-entry .icon {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  /* Push to talk → Vibrato morph (Figma 508:18713 / 511:19308) */
+  .ptt-morph {
+    position: absolute;
+    left: 105px;
+    top: 530px;
+    width: 164px;
+    height: 164px;
+    z-index: 2;
+    overflow: visible;
+    transition:
+      left 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      top 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      width 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      height 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .phone.is-collapsed .ptt-morph,
+  .phone.is-filter-mode .ptt-morph {
+    z-index: 5;
+  }
+  .phone.is-lottie-focus .ptt-morph {
+    z-index: 6;
+  }
+  .ptt-morph-bg {
+    position: absolute;
+    inset: 0;
+    border-radius: 163.636px;
+    border: none;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.2);
+    background:
+      radial-gradient(ellipse 120% 90% at 18% 11%, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0.32) 21%, rgba(255, 255, 255, 0.16) 100%),
+      linear-gradient(135deg, rgba(99, 192, 232, 0.6) 0%, rgba(120, 112, 222, 0.6) 50%, rgba(209, 156, 90, 0.6) 100%);
+    overflow: hidden;
+    transition:
+      inset 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+      border-radius 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .ptt-morph-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: #e0ff8a;
+    opacity: 0;
+    transition: opacity 0.52s cubic-bezier(0.22, 1, 0.36, 1) 0.18s;
+  }
+  .ptt-morph-icon {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 40px;
+    color: #fff;
+    transition:
+      font-size 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      color 0.52s cubic-bezier(0.22, 1, 0.36, 1) 0.22s;
+  }
+  .ptt-filter-tag {
+    position: absolute;
+    left: 50%;
+    top: -30px;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 24px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: #292929;
+    opacity: 0;
+    white-space: nowrap;
+    transition: opacity 0.28s ease;
+  }
+  .ptt-filter-tag .voice-wave span { background: #e0ff8a; }
+  .ptt-filter-tag-label {
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #e0ff8a;
+  }
+
+  .phone.is-filter-mode .ptt-morph {
+    left: 129px;
+    top: 602px;
+    width: 116px;
+    height: 116px;
+    border-radius: 50%;
+  }
+  .phone.is-filter-mode .ptt-morph-bg {
+    inset: 8px;
+    border-radius: 375px;
+    box-shadow: none;
+  }
+  .phone.is-filter-mode .ptt-morph-bg::after {
+    opacity: 1;
+  }
+  .ptt-morph-bg,
+  .ptt-morph-icon,
+  .ptt-filter-tag {
+    z-index: 1;
+  }
+  .phone.is-filter-mode .ptt-morph-icon {
+    font-size: 32px;
+    color: #5d7221;
+  }
+  .phone.is-filter-mode .ptt-filter-tag {
+    opacity: 0.9;
+    transition: opacity 0.35s ease 0.35s;
+  }
+  .phone.is-filter-exiting .ptt-filter-tag {
+    opacity: 0;
+    transition: opacity 0.26s ease;
+  }
+
+  /* Toolbox + icon_lottie: visible in lobby & collapsed; exit only on filter mode */
+  .phone.is-filter-mode .bottom-toolbox {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(20px) scale(0.82);
+    filter: blur(8px);
+  }
+  .phone.is-collapsed:not(.is-filter-mode) .bottom-toolbox {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    filter: none;
+    pointer-events: auto;
+    z-index: 3;
+  }
+  .phone.is-lottie-focus:not(.is-filter-mode) .bottom-toolbox {
+    z-index: 6;
+  }
+  .phone:not(.is-collapsed):not(.is-filter-mode) .bottom-toolbox {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    filter: none;
+    pointer-events: auto;
+    transition:
+      opacity 0.35s cubic-bezier(0.32, 0.72, 0, 1) 0.12s,
+      transform 0.4s cubic-bezier(0.32, 0.72, 0, 1) 0.08s,
+      filter 0.3s ease 0.08s,
+      visibility 0s;
+  }
+
+  /* ── Filter lobby UI (Figma 511:19263) ── */
+  .filter-ui {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease 0.25s;
+  }
+  .phone.is-filter-mode .filter-ui {
+    opacity: 1;
+    pointer-events: none;
+  }
+  .filter-tabs,
+  .filter-carousel,
+  .filter-bottom-bar {
+    pointer-events: auto;
+  }
+  .phone.is-filter-mode .filter-tabs {
+    animation: filterSlideIn 0.45s cubic-bezier(0.32, 0.72, 0, 1) 0.2s both;
+  }
+  .phone.is-filter-mode .filter-carousel {
+    animation: filterSlideIn 0.45s cubic-bezier(0.32, 0.72, 0, 1) 0.28s both;
+  }
+  .phone.is-filter-mode .filter-bottom-bar {
+    animation: filterSlideIn 0.45s cubic-bezier(0.32, 0.72, 0, 1) 0.34s both;
+  }
+  @keyframes filterSlideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Text Tab (Figma 511:19326) */
+  .filter-tabs {
+    position: absolute;
+    left: 56.5px;
+    top: 500px;
+    width: 262px;
+    height: 32px;
+    padding: 2px;
+    border-radius: 375px;
+    background: #0d0d0d;
+    overflow: hidden;
+  }
+  .filter-tabs-track {
+    position: relative;
+    display: flex;
+    height: 28px;
+    border-radius: 20px;
+    isolation: isolate;
+  }
+  .filter-tabs-indicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: calc(100% / 3);
+    height: 100%;
+    border-radius: 375px;
+    background: #3d3d3d;
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    z-index: 0;
+    pointer-events: none;
+  }
+  .filter-tab {
+    flex: 1 0 0;
+    min-width: 0;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    padding: 0 20px;
+    border: none;
+    border-radius: 375px;
+    background: transparent;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #b3b3b3;
+    white-space: nowrap;
+    cursor: pointer;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .filter-tab--active {
+    color: #fff;
+    z-index: 2;
+  }
+  .filter-tab-content {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .filter-tab-badge {
+    position: absolute;
+    right: -9px;
+    top: 2px;
+    width: 6px;
+    height: 6px;
+    border-radius: 375px;
+    background: #ff6c67;
+  }
+
+  .filter-carousel {
+    position: absolute;
+    left: 0;
+    top: 630px;
+    width: 375px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    padding-left: 245px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .filter-carousel::-webkit-scrollbar { display: none; }
+
+  .filter-preset {
+    position: relative;
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+    padding: 6px;
+    opacity: 0.5;
+  }
+  .filter-preset-inner {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    line-height: 1;
+  }
+  .filter-preset-label {
+    position: absolute;
+    left: 50%;
+    top: -58px;
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    padding: 2px 0;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #808080;
+    white-space: nowrap;
+  }
+  .filter-preset-label .filter-preset-badge {
+    position: absolute;
+    right: -8px;
+    top: 3px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ff6c67;
+    border: 4px solid #1a1a1a;
+  }
+  .filter-preset--power .filter-preset-inner { background: #a1ceff; }
+  .filter-preset--deep .filter-preset-inner { background: #f9e88c; }
+  .filter-preset--sweet .filter-preset-inner { background: #98fff8; }
+  .filter-preset--baby .filter-preset-inner { background: #d6eef6; }
+
+  /* Filter Bottom Option / Exit (Figma 511:19306) */
+  .filter-bottom-bar {
+    position: absolute;
+    left: 0;
+    top: 724px;
+    width: 375px;
+    height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .filter-exit {
+    width: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .filter-exit .icon {
+    font-size: 24px;
+    color: #b3b3b3;
+    line-height: 1;
+  }
+  .filter-exit-label {
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0.24px;
+    color: #808080;
+  }
+
+  /* ── Lobby bottom toolbox (Figma 535:20354) + lottie overlay (485:17747) ── */
+  .bottom-toolbox {
+    position: absolute;
+    left: 83px;
+    top: 736px;
+    width: 208px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border-radius: 60px;
+    background: #292929;
+    overflow: clip;
+    z-index: 3;
+    transform-origin: 50% 80%;
+    transition:
+      opacity 0.42s cubic-bezier(0.32, 0.72, 0, 1) 0.06s,
+      transform 0.48s cubic-bezier(0.32, 0.72, 0, 1),
+      filter 0.38s ease,
+      visibility 0s linear 0.42s;
+  }
+  .toolbox-option {
+    position: relative;
+    flex-shrink: 0;
+    width: 56px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: -8px;
+  }
+  .toolbox-option:last-child { margin-right: 0; }
+  .toolbox-option-bg {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 36px;
+    border-radius: 100px;
+    background: #3d3d3d;
+    opacity: 0;
+  }
+  .toolbox-option .icon {
+    position: relative;
+    z-index: 1;
+    font-size: 24px;
+    color: #e0e0e0;
+    line-height: 1;
+  }
+  .toolbox-badge {
+    position: absolute;
+    left: calc(50% + 12px);
+    top: calc(50% - 12px);
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ff6c67;
+    z-index: 2;
+  }
+
+  .phone.is-collapsed .lobby {
+    z-index: 1;
+  }
+  .phone.is-collapsed .chat-page-stack {
+    z-index: 2;
+  }
+  .toolbox-option--filter {
+    overflow: visible;
+  }
+  .toolbox-option--filter.is-lottie-active .toolbox-filter-icon {
+    visibility: hidden;
+  }
+
+  /* icon_lottie — overlays Filter slot only while playing after Try It Now */
+  .icon-lottie {
+    position: absolute;
+    left: 135px;
+    top: 728px;
+    width: 56px;
+    height: 60px;
+    pointer-events: none;
+    z-index: 4;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0s linear 0.2s;
+  }
+  .icon-lottie.is-playing {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.35s cubic-bezier(0.32, 0.72, 0, 1), visibility 0s;
+    z-index: 6;
+  }
+  .icon-lottie canvas,
+  .icon-lottie svg {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  .phone.is-collapsed .chat-page-stack {
+    transform: translateY(100%);
+    pointer-events: none;
+  }
+
+  /* Chat sheet — 30px top radius (Figma 511:19080) */
+  .chat-page-stack {
+    position: absolute;
+    left: 0;
+    top: 116px;
+    width: 375px;
+    height: 696px;
+    z-index: 4;
+    border-radius: 30px 30px 0 0;
+    background: #1f1f1f;
+    overflow: hidden;
+    transition: transform 0.45s cubic-bezier(0.32, 0.72, 0, 1);
+    will-change: transform;
+  }
+
+  /* ── Chat page (Figma 511:19080) ── */
+  .chat-page {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    background: #1f1f1f;
+    overflow: hidden;
+  }
+
+  /* AI background blobs */
+  .ai-bg {
+    position: absolute;
+    inset: 72px 0 72px;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .ai-bg::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: 750px;
+    height: 750px;
+    transform: translateX(-50%);
+    border-radius: 50%;
+    background: linear-gradient(111deg, #63c0e8 0%, #7870de 52%, #d19c5a 100%);
+    opacity: 0.1;
+    filter: blur(350px);
+  }
+  .ai-bg-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(40px);
+    opacity: 0.35;
+  }
+  .ai-bg-blob--1 {
+    width: 280px;
+    height: 280px;
+    left: -80px;
+    top: 120px;
+    background: radial-gradient(circle, rgba(99, 192, 232, 0.5) 0%, transparent 70%);
+  }
+  .ai-bg-blob--2 {
+    width: 220px;
+    height: 220px;
+    right: -60px;
+    bottom: 180px;
+    background: radial-gradient(circle, rgba(120, 112, 222, 0.45) 0%, transparent 70%);
+  }
+  .ai-bg-blob--3 {
+    width: 180px;
+    height: 180px;
+    right: 40px;
+    bottom: 60px;
+    background: radial-gradient(circle, rgba(209, 156, 90, 0.4) 0%, transparent 70%);
+  }
+
+  /* ── Nav bar ── */
+  .nav-bar {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    height: 72px;
+    padding: 0 20px;
+    flex-shrink: 0;
+    background: #1f1f1f;
+  }
+  .nav-back {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    font-family: 'buz';
+    font-size: 24px;
+    line-height: 1;
+    color: #fff;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .nav-middle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+  .nav-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .nav-title-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+  }
+  .nav-verified {
+    font-size: 18px;
+    color: #c4f353;
+    flex-shrink: 0;
+  }
+  .nav-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.18px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Chat list (Figma 511:19083) ── */
+  .chat-list {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    padding: 20px;
+    overflow: clip;
+    min-height: 0;
+  }
+
+  /* Feature card enter — only the last message animates in */
+  .msg-row--feature-enter {
+    display: grid;
+    grid-template-rows: 0fr;
+    gap: 0;
+    opacity: 0;
+    margin-top: -16px;
+    transition:
+      grid-template-rows 0.54s cubic-bezier(0.34, 1.02, 0.48, 1),
+      opacity 0.44s cubic-bezier(0.34, 1.02, 0.48, 1) 0.04s,
+      margin-top 0.54s cubic-bezier(0.34, 1.02, 0.48, 1);
+  }
+  .msg-row--feature-enter.is-visible {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    margin-top: 0;
+  }
+  .msg-row--feature-enter-inner {
+    overflow: hidden;
+    min-height: 0;
+  }
+  .msg-row--feature-enter .feature-card {
+    transform: translateY(6px) scale(0.985);
+    transition: transform 0.56s cubic-bezier(0.34, 1.05, 0.52, 1) 0.07s;
+  }
+  .msg-row--feature-enter.is-visible .feature-card {
+    transform: translateY(0) scale(1);
+  }
+
+  .msg-time {
+    width: 100%;
+    max-width: 335px;
+    text-align: center;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #b3b3b3;
+  }
+
+  /* Voice message bubble (Figma 511:19087 / 511:19092) */
+  .msg-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    width: 100%;
+    max-width: 335px;
+    padding-right: 20px;
+  }
+  .msg-row--mine {
+    justify-content: flex-end;
+    padding-right: 0;
+    padding-left: 40px;
+  }
+  .msg-row--feature {
+    transform-origin: left bottom;
+    padding-right: 20px;
+  }
+  .msg-row.msg-row--feature-enter {
+    display: grid;
+    align-items: stretch;
+    gap: 0;
+  }
+  .msg-bubble--mine {
+    max-width: 261px;
+    background: #c4f353;
+    border-radius: 17px 17px 4px 17px;
+    padding: 6px 12px;
+  }
+  .msg-bubble--mine p {
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    line-height: 1.3;
+    letter-spacing: 0.32px;
+    color: #000;
+  }
+  .msg-bubble {
+    max-width: 261px;
+    background: #333;
+    border-radius: 17px 17px 17px 4px;
+    overflow: hidden;
+  }
+  .msg-voice {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 34px;
+    padding: 0 7px 0 12px;
+    min-width: 100px;
+    border-radius: 17px 17px 17px 4px;
+    background: #333;
+  }
+  .msg-bubble:has(.msg-transcribe-wrap) .msg-voice {
+    border-radius: 17px 17px 0 0;
+  }
+  .voice-wave {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+  .voice-wave span {
+    position: absolute;
+    bottom: 27.78%;
+    top: 27.78%;
+    background: #fff;
+    border-radius: 10px;
+  }
+  .voice-wave span:nth-child(1) { left: 5.56%; right: 75%; }
+  .voice-wave span:nth-child(2) { left: 40.28%; right: 40.28%; top: 9.72%; bottom: 9.72%; }
+  .voice-wave span:nth-child(3) { left: 75%; right: 5.56%; }
+  .msg-duration {
+    flex: 1;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #fff;
+  }
+  .msg-transcribe-wrap {
+    padding: 0 4px 4px;
+  }
+  .msg-transcribe {
+    background: #292929;
+    border-radius: 13px 13px 13px 2px;
+    padding: 6px 10px;
+    min-height: 34px;
+  }
+  .msg-transcribe p {
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    line-height: 1.3;
+    letter-spacing: 0.32px;
+    color: #e0e0e0;
+    max-width: 233px;
+  }
+
+  /* Feature card (Figma 511:19095) */
+  .feature-card {
+    max-width: 261px;
+    width: 261px;
+    background: #333;
+    border-radius: 17px 17px 17px 4px;
+    overflow: hidden;
+    transform-origin: left bottom;
+  }
+  .feature-cover {
+    width: 100%;
+    height: 143px;
+    background: #000;
+    overflow: hidden;
+    border-radius: 17px 17px 0 0;
+  }
+  .feature-cover #feature-lottie {
+    width: 100%;
+    height: 100%;
+  }
+  .feature-cover #feature-lottie canvas,
+  .feature-cover #feature-lottie svg {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .feature-body {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .feature-title {
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.16px;
+    color: #fff;
+  }
+  .feature-desc {
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #b3b3b3;
+  }
+  .feature-link {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    padding: 4px 0;
+    color: #c4f353;
+    cursor: pointer;
+  }
+  .feature-link span:first-child {
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+  }
+  .feature-link .icon {
+    font-size: 14px;
+  }
+  .feature-btn-wrap {
+    padding: 0 12px 12px;
+  }
+  .feature-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 32px;
+    padding: 4px 12px;
+    border-radius: 375px;
+    background: #fff;
+    border: none;
+    cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #000;
+  }
+
+  /* ── Bottom area ── */
+  .chat-bottom {
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+    background: #292929;
+    box-shadow: 0 -0.5px 0 #3d3d3d;
+    padding-bottom: 24px;
+  }
+
+  .topic-chips {
+    display: flex;
+    gap: 10px;
+    height: 50px;
+    padding: 6px 12px 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .topic-chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 100px;
+    background: rgba(255, 255, 255, 0.1);
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #b3b3b3;
+    white-space: nowrap;
+  }
+
+  .input-bar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 10px;
+    height: 48px;
+    padding: 6px 12px;
+  }
+  .round-btn {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 20px;
+    background: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: #e0e0e0;
+  }
+  .input-field {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 36px;
+    padding: 0 12px 0 4px;
+    border-radius: 24px;
+    background: #1f1f1f;
+    border: 0.5px solid #3d3d3d;
+    min-width: 0;
+  }
+  .input-field-icon {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #333;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: #e0e0e0;
+  }
+  .input-placeholder {
+    flex: 1;
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    line-height: 1.3;
+    letter-spacing: 0.32px;
+    color: #808080;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone" id="phone">
+  <div class="lobby">
+    <div class="home-top">
+      <div class="status-bar">
+        <img class="status-bar-img" src="assets/voice_filter_intro/status_bar_white.png" alt="">
+      </div>
+      <nav class="home-nav">
+        <div class="home-nav-avatar-wrap">
+          <img class="home-nav-avatar" src="assets/voice_filter_intro/user_avatar.png" alt="">
+          <span class="home-nav-mode-dot home-nav-mode-dot--autoplay"></span>
+          <span class="home-nav-mode-dot home-nav-mode-dot--quiet"></span>
+          <span class="home-nav-avatar-badge"></span>
+        </div>
+        <div class="home-nav-icon-btn home-nav-icon-btn--search">
+          <span class="home-nav-icon icon" aria-hidden="true">&#xE9CF;</span>
+          <span class="home-nav-search-badge" aria-hidden="true"></span>
+        </div>
+        <div class="home-nav-icon-btn home-nav-icon-btn--contacts">
+          <span class="home-nav-icon icon" aria-hidden="true">&#xE9A0;</span>
+        </div>
+      </nav>
+    </div>
+
+    <div class="chat-frame">
+      <div class="chat-frame-carousel">
+        <div class="chat-frame-select-ring" aria-hidden="true"></div>
+        <div class="chat-frame-item chat-frame-item--new">
+          <div class="chat-frame-avatar--new"><span class="icon">&#xE9A9;</span></div>
+          <span class="chat-frame-name">New Chat</span>
+        </div>
+        <div class="chat-frame-item chat-frame-item--active">
+          <img class="chat-frame-avatar chat-frame-avatar--lg" src="assets/voice_filter_intro/aloha_profile_202605.jpg" alt="Buz ALoHa">
+          <span class="chat-frame-name chat-frame-name--lg">
+            <span class="icon">&#xE945;</span>
+            Buz ALoHa
+          </span>
+        </div>
+        <div class="chat-frame-item chat-frame-item--team">
+          <img class="chat-frame-avatar chat-frame-avatar--sm" src="assets/voice_filter_intro/team_avatar1.png" alt="Anna">
+          <span class="chat-frame-name">Anna</span>
+        </div>
+        <div class="chat-frame-item chat-frame-item--matt">
+          <img class="chat-frame-avatar chat-frame-avatar--sm" src="assets/voice_filter_intro/matt_avatar.png" alt="Matt">
+          <span class="chat-frame-unread">2</span>
+          <span class="chat-frame-name">Matt</span>
+        </div>
+      </div>
+      <button type="button" class="chat-frame-preview" id="open-chat-btn" aria-label="Open Buz ALoHa chat">
+        <div class="chat-frame-msg">
+          <p class="chat-frame-msg-text">Hey, How's going today? Do you wanna come over tonight?</p>
+          <div class="chat-frame-voice-pill">
+            <div class="voice-wave"><span></span><span></span><span></span></div>
+            <span class="msg-duration">0:05</span>
+          </div>
+        </div>
+        <div class="chat-frame-footer">
+          <span class="chat-frame-time">Just now</span>
+          <span class="chat-frame-entry">
+            <span class="chat-frame-entry-label">Chat</span>
+            <span class="icon">&#xE909;</span>
+          </span>
+        </div>
+      </button>
+    </div>
+
+    <div class="lobby-overlay"></div>
+    <button type="button" class="home-nav-mode-switch" id="home-nav-mode-btn" aria-label="Playback mode" aria-pressed="false">
+      <span class="home-nav-mode-icon-slot">
+        <span class="home-nav-mode-icon home-nav-mode-icon--autoplay icon">&#xE929;</span>
+        <span class="home-nav-mode-icon home-nav-mode-icon--quiet icon">&#xE976;</span>
+      </span>
+      <span class="home-nav-mode-label-wrap">
+        <span class="home-nav-mode-label home-nav-mode-label--autoplay">Autoplay</span>
+        <span class="home-nav-mode-label home-nav-mode-label--quiet">Quiet</span>
+      </span>
+      <span class="home-nav-mode-chevron icon">&#xE9B5;</span>
+    </button>
+    <div class="lottie-focus-mask" id="lottie-focus-mask" aria-hidden="true"></div>
+
+    <div class="filter-ui" aria-hidden="true">
+      <div class="filter-tabs">
+        <div class="filter-tabs-track" id="filter-tabs-track">
+          <div class="filter-tabs-indicator" id="filter-tabs-indicator"></div>
+          <button type="button" class="filter-tab filter-tab--active" data-tab="0">
+            <span class="filter-tab-content">All</span>
+          </button>
+          <button type="button" class="filter-tab" data-tab="1">
+            <span class="filter-tab-content">
+              Featured
+              <span class="filter-tab-badge" aria-hidden="true"></span>
+            </span>
+          </button>
+          <button type="button" class="filter-tab" data-tab="2">
+            <span class="filter-tab-content">Language</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="filter-carousel">
+        <div class="filter-preset filter-preset--power">
+          <span class="filter-preset-label">Power<span class="filter-preset-badge"></span></span>
+          <div class="filter-preset-inner">🙌</div>
+        </div>
+        <div class="filter-preset filter-preset--deep">
+          <span class="filter-preset-label">Deep<span class="filter-preset-badge"></span></span>
+          <div class="filter-preset-inner">🧔‍♂️</div>
+        </div>
+        <div class="filter-preset filter-preset--sweet">
+          <span class="filter-preset-label">Sweet</span>
+          <div class="filter-preset-inner">🎀</div>
+        </div>
+        <div class="filter-preset filter-preset--baby">
+          <span class="filter-preset-label">Baby</span>
+          <div class="filter-preset-inner">🍼</div>
+        </div>
+      </div>
+
+      <div class="filter-bottom-bar">
+        <button type="button" class="filter-exit" id="filter-exit-btn" aria-label="Exit voice filter">
+          <span class="icon">&#xE94F;</span>
+          <span class="filter-exit-label">Exit</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="bottom-toolbox" data-name="Lobby Bottom Toolbox">
+      <div class="toolbox-option" data-name="Bottom Option_VE">
+        <div class="toolbox-option-bg"></div>
+        <span class="icon">&#xE952;</span>
+      </div>
+      <div class="toolbox-option toolbox-option--filter" id="toolbox-filter-option" data-name="Bottom Option_Filter">
+        <div class="toolbox-option-bg"></div>
+        <span class="icon toolbox-filter-icon">&#xE92B;</span>
+      </div>
+      <div class="toolbox-option" data-name="Bottom Option_RTL">
+        <div class="toolbox-option-bg"></div>
+        <span class="icon">&#xE9C7;</span>
+        <span class="toolbox-badge"></span>
+      </div>
+      <div class="toolbox-option" data-name="Bottom Option_More">
+        <div class="toolbox-option-bg"></div>
+        <span class="icon">&#xE900;</span>
+      </div>
+    </div>
+    <div class="icon-lottie" id="icon-lottie" data-name="icon_lottie"></div>
+  </div>
+
+  <div class="chat-page-stack">
+    <div class="chat-page">
+    <div class="ai-bg">
+      <div class="ai-bg-blob ai-bg-blob--1"></div>
+      <div class="ai-bg-blob ai-bg-blob--2"></div>
+      <div class="ai-bg-blob ai-bg-blob--3"></div>
+    </div>
+
+    <header class="nav-bar" data-name="Chat History Nav Bar">
+      <button type="button" class="nav-back icon" id="collapse-chat-btn" aria-label="Collapse chat">&#xE908;</button>
+      <div class="nav-middle">
+        <img class="nav-avatar" src="assets/voice_filter_intro/aloha_profile_202605.jpg" alt="Buz ALoHa">
+        <div class="nav-title-row">
+          <span class="icon nav-verified">&#xE945;</span>
+          <span class="nav-title">Buz ALoHa</span>
+        </div>
+      </div>
+    </header>
+
+    <div class="chat-list">
+      <p class="msg-time">Just now</p>
+
+      <div class="msg-row">
+        <div class="msg-bubble">
+          <div class="msg-voice">
+            <div class="voice-wave"><span></span><span></span><span></span></div>
+            <span class="msg-duration">0:01</span>
+          </div>
+          <div class="msg-transcribe-wrap">
+            <div class="msg-transcribe">
+              <p>Hey, I'm ALoHa, your AI assistant and friend! Let's try Character Chat, talk about your feelings, or just explore your hobbies. Ask me anything, I've got your back.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg-row msg-row--mine">
+        <div class="msg-bubble--mine">
+          <p>🎭 Character Chat</p>
+        </div>
+      </div>
+
+      <div class="msg-row">
+        <div class="msg-bubble">
+          <div class="msg-voice">
+            <div class="voice-wave"><span></span><span></span><span></span></div>
+            <span class="msg-duration">0:01</span>
+          </div>
+          <div class="msg-transcribe-wrap">
+            <div class="msg-transcribe">
+              <p>Welcome to Character Chat! Who are we bringing to life today? Describe your character's look, personality, and backstory to begin.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="msg-row msg-row--feature msg-row--feature-enter" id="feature-card-row">
+        <div class="msg-row--feature-enter-inner">
+          <div class="feature-card" id="feature-card">
+            <div class="feature-cover">
+              <div id="feature-lottie"></div>
+            </div>
+            <div class="feature-body">
+              <p class="feature-title">ALoHa Just Discovered a New Feature: Voice Filters!</p>
+              <p class="feature-desc">Pick a filter, hit record, and turn your messages into surprises. Let your friends hear a whole new you! 🎉</p>
+              <div class="feature-link">
+                <span>Learn More</span>
+                <span class="icon">&#xE909;</span>
+              </div>
+            </div>
+            <div class="feature-btn-wrap">
+              <button class="feature-btn" type="button" id="try-it-btn">Try It Now</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-bottom">
+      <div class="topic-chips">
+        <div class="chip">🎭 Character Chat</div>
+        <div class="chip">🎮 Wordplay</div>
+        <div class="chip">🧠 Discussion on Emotions</div>
+        <div class="chip">🎈 Everyday Entertainment</div>
+        <div class="chip">💘 Love Life</div>
+      </div>
+
+      <div class="input-bar">
+        <div class="round-btn"><span class="icon">&#xE952;</span></div>
+        <div class="input-field">
+          <div class="input-field-icon"><span class="icon">&#xE9CE;</span></div>
+          <span class="input-placeholder">Enter message</span>
+        </div>
+        <div class="round-btn"><span class="icon">&#xE900;</span></div>
+        <div class="round-btn"><span class="icon">&#xE927;</span></div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <div class="ptt-morph" id="ptt-morph" data-name="Push To Talk">
+    <div class="ptt-morph-bg"></div>
+    <span class="icon ptt-morph-icon">&#xE927;</span>
+    <div class="ptt-filter-tag">
+      <div class="voice-wave"><span></span><span></span><span></span></div>
+      <span class="ptt-filter-tag-label">Vibrato</span>
+    </div>
+  </div>
+</div>
+
+<script src="assets/voice_filter_icon_lottie.data.js"></script>
+<script>
+  const featureLottie = lottie.loadAnimation({
+    container: document.getElementById('feature-lottie'),
+    renderer: 'canvas',
+    loop: true,
+    autoplay: false,
+    path: 'assets/voice_filter_intro_lottie.json',
+    rendererSettings: {
+      preserveAspectRatio: 'xMidYMid meet',
+      clearCanvas: true,
+    },
+  });
+
+  function playFeatureCardEnter(delayMs = 420) {
+    const row = document.getElementById('feature-card-row');
+    if (!row) return;
+    window.clearTimeout(playFeatureCardEnter.timer);
+    row.classList.remove('is-visible');
+    featureLottie.stop();
+    void row.offsetHeight;
+    playFeatureCardEnter.timer = window.setTimeout(() => {
+      row.classList.add('is-visible');
+      if (featureLottie.isLoaded) {
+        featureLottie.goToAndPlay(0, true);
+      } else {
+        featureLottie.addEventListener('DOMLoaded', () => featureLottie.goToAndPlay(0, true), { once: true });
+      }
+    }, delayMs);
+  }
+
+  const iconLottie = lottie.loadAnimation({
+    container: document.getElementById('icon-lottie'),
+    renderer: 'svg',
+    loop: false,
+    autoplay: false,
+    animationData: window.VOICE_FILTER_ICON_LOTTIE,
+  });
+
+  function togglePlaybackMode() {
+    const phone = document.getElementById('phone');
+    const btn = document.getElementById('home-nav-mode-btn');
+    phone.classList.toggle('is-quiet-mode');
+    const quiet = phone.classList.contains('is-quiet-mode');
+    btn.setAttribute('aria-pressed', quiet ? 'true' : 'false');
+    btn.setAttribute('aria-label', quiet ? 'Quiet mode, tap to switch to Autoplay' : 'Autoplay mode, tap to switch to Quiet');
+  }
+
+  const CHAT_COLLAPSE_MS = 450;
+  const MASK_FADE_DELAY_MS = 80;
+
+  function collapseChat() {
+    const phone = document.getElementById('phone');
+    if (phone.classList.contains('is-collapsed')) return false;
+    phone.classList.add('is-collapsed');
+    return true;
+  }
+
+  function showLottieFocusMask() {
+    const phone = document.getElementById('phone');
+    phone.classList.add('is-lottie-focus');
+    document.getElementById('lottie-focus-mask').setAttribute('aria-hidden', 'false');
+  }
+
+  function hideLottieFocusMask() {
+    document.getElementById('phone').classList.remove('is-lottie-focus');
+    document.getElementById('lottie-focus-mask').setAttribute('aria-hidden', 'true');
+  }
+
+  function playIconLottieIntro() {
+    document.getElementById('toolbox-filter-option').classList.add('is-lottie-active');
+    document.getElementById('icon-lottie').classList.add('is-playing');
+    if (iconLottie.isLoaded) {
+      playIconLottieOnce();
+    } else {
+      iconLottie.addEventListener('DOMLoaded', playIconLottieOnce, { once: true });
+    }
+  }
+
+  function cancelFilterIntroWait() {
+    window.clearTimeout(startFilterIntro.timer);
+    window.clearTimeout(startFilterIntro.maskTimer);
+    const chatStack = document.querySelector('.chat-page-stack');
+    if (chatStack && startFilterIntro.onCollapseEnd) {
+      chatStack.removeEventListener('transitionend', startFilterIntro.onCollapseEnd);
+    }
+    startFilterIntro.onCollapseEnd = null;
+  }
+
+  function startFilterIntro() {
+    const phone = document.getElementById('phone');
+    if (phone.classList.contains('is-filter-mode')) return;
+
+    cancelFilterIntroWait();
+    hideIconLottie();
+    hideLottieFocusMask();
+
+    const runAfterCollapse = () => {
+      cancelFilterIntroWait();
+      if (phone.classList.contains('is-filter-mode') || document.getElementById('icon-lottie').classList.contains('is-playing')) return;
+      playIconLottieIntro();
+    };
+
+    if (phone.classList.contains('is-collapsed')) {
+      showLottieFocusMask();
+      startFilterIntro.timer = window.setTimeout(runAfterCollapse, 280);
+      return;
+    }
+
+    const chatStack = document.querySelector('.chat-page-stack');
+    startFilterIntro.onCollapseEnd = (event) => {
+      if (event.target !== chatStack || event.propertyName !== 'transform') return;
+      runAfterCollapse();
+    };
+    chatStack.addEventListener('transitionend', startFilterIntro.onCollapseEnd);
+    startFilterIntro.timer = window.setTimeout(runAfterCollapse, CHAT_COLLAPSE_MS + 40);
+
+    collapseChat();
+    startFilterIntro.maskTimer = window.setTimeout(showLottieFocusMask, MASK_FADE_DELAY_MS);
+  }
+
+  const FILTER_LABEL_EXIT_MS = 280;
+
+  function exitFilterMode() {
+    const phone = document.getElementById('phone');
+    if (!phone.classList.contains('is-filter-mode')) return;
+    phone.classList.add('is-filter-exiting');
+    window.clearTimeout(exitFilterMode.timer);
+    exitFilterMode.timer = window.setTimeout(() => {
+      phone.classList.remove('is-filter-mode', 'is-filter-exiting');
+      document.querySelector('.filter-ui').setAttribute('aria-hidden', 'true');
+      resetToolbox();
+    }, FILTER_LABEL_EXIT_MS);
+  }
+
+  function resetToolbox() {
+    cancelFilterIntroWait();
+    hideIconLottie();
+    hideLottieFocusMask();
+  }
+
+  function hideIconLottie() {
+    const el = document.getElementById('icon-lottie');
+    el.classList.remove('is-playing');
+    document.getElementById('toolbox-filter-option').classList.remove('is-lottie-active');
+    iconLottie.stop();
+    iconLottie.goToAndStop(0, true);
+  }
+
+  function enterFilterMode() {
+    const phone = document.getElementById('phone');
+    if (!phone.classList.contains('is-collapsed') || phone.classList.contains('is-filter-mode')) return;
+    phone.classList.add('is-filter-mode');
+    document.querySelector('.filter-ui').setAttribute('aria-hidden', 'false');
+    resetToolbox();
+  }
+
+  function openChat() {
+    const phone = document.getElementById('phone');
+    if (!phone.classList.contains('is-collapsed') && !phone.classList.contains('is-filter-mode')) return;
+    phone.classList.remove('is-collapsed', 'is-filter-mode');
+    document.querySelector('.filter-ui').setAttribute('aria-hidden', 'true');
+    resetToolbox();
+    playFeatureCardEnter(540);
+  }
+
+  function playIconLottieOnce() {
+    iconLottie.stop();
+    iconLottie.goToAndPlay(0, true);
+  }
+
+  iconLottie.addEventListener('complete', enterFilterMode);
+  iconLottie.addEventListener('enterFrame', () => {
+    if (!iconLottie.isPaused && iconLottie.currentFrame >= iconLottie.totalFrames - 1) {
+      enterFilterMode();
+    }
+  });
+
+  document.getElementById('try-it-btn').addEventListener('click', startFilterIntro);
+
+  document.getElementById('collapse-chat-btn').addEventListener('click', collapseChat);
+
+  document.getElementById('home-nav-mode-btn').addEventListener('click', togglePlaybackMode);
+
+  document.getElementById('open-chat-btn').addEventListener('click', openChat);
+
+  document.getElementById('filter-exit-btn').addEventListener('click', exitFilterMode);
+
+  const filterTabs = document.querySelectorAll('.filter-tab');
+  const filterIndicator = document.getElementById('filter-tabs-indicator');
+  filterTabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const index = Number(tab.dataset.tab);
+      filterTabs.forEach((t) => t.classList.toggle('filter-tab--active', t === tab));
+      filterIndicator.style.transform = `translateX(${index * 100}%)`;
+    });
+  });
+
+  playFeatureCardEnter(800);
+</script>
+
+</body>
+</html>
