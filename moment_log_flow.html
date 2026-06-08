@@ -1,0 +1,2539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moment Log · User Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  :root {
+    /* ── Design Tokens ───────────────────────────────────────
+       圆角   sheet 12 / block 8 / pill 5
+       描边   node 1.5 / bold 2 / edge-main 2 / edge-aux 1.5
+       色彩   5语义色 + neutral chrome + canvas bg
+    ──────────────────────────────────────────────────────── */
+    --bg:          #f5f5f7;   /* 页面底色 */
+    --dot:         #dddde6;   /* 点阵 */
+    --chrome:      rgba(255,255,255,0.88);
+    --border:      #e5e5ea;   /* 细分割线 */
+    --text:        #1d1d1f;   /* 正文 */
+    --muted:       #8e8e93;   /* 次级 */
+    --subtle:      #aeaeb2;   /* 更次级 */
+    --warn-bg:     #fffbf0;
+    --warn-border: #f0e0b0;
+    --warn-text:   #7a5400;
+    /* 保留旧名给已有 CSS 用 */
+    --vis-bg: var(--bg); --vis-dot: var(--dot); --vis-chrome: var(--chrome);
+    --vis-border: var(--border); --vis-text: var(--text); --vis-muted: var(--muted);
+    --vis-warn-bg: var(--warn-bg); --vis-warn-border: var(--warn-border); --vis-warn-text: var(--warn-text);
+  }
+  body {
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    background: var(--vis-bg);
+    -webkit-font-smoothing: antialiased;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Summary 栏 ── */
+  .sum-bar {
+    flex-shrink: 0;
+    background: var(--vis-chrome);
+    border-bottom: 0.5px solid var(--vis-border);
+    backdrop-filter: saturate(180%) blur(12px);
+    overflow: hidden;
+    transition: max-height 0.24s ease;
+  }
+  .sum-bar.collapsed { max-height: 34px; }
+  .sum-bar.expanded  { max-height: 360px; }
+  .sum-header {
+    height: 34px; display: flex; align-items: center; gap: 10px;
+    padding: 0 20px; cursor: pointer; user-select: none;
+  }
+  .sum-header:hover { background: rgba(0,0,0,0.025); }
+  .sum-title  { font-size: 12px; font-weight: 600; color: var(--vis-text); }
+  .sum-desc   { font-size: 11px; color: var(--vis-muted); flex: 1; }
+  .sum-stat   { font-size: 11px; color: var(--vis-muted); }
+  .sum-chevron { font-size: 10px; color: var(--vis-muted); line-height: 1; transition: transform 0.2s; flex-shrink: 0; }
+  .sum-bar.expanded .sum-chevron { transform: rotate(180deg); }
+
+  .sum-body {
+    padding: 4px 14px 8px;
+    overflow-x: auto;
+    overflow-y: auto;
+  }
+  body[data-flow-ver="2.0"] .sum-body {
+    flex: 1;
+    min-height: 0;
+  }
+  body[data-flow-ver="2.0"] .sum-bar.expanded {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    max-height: none;
+  }
+  .sum-row {
+    display: flex; align-items: center; gap: 0; min-height: 24px;
+  }
+  .sum-lane-lbl {
+    flex-shrink: 0; width: 88px;
+    display: flex; align-items: center; gap: 5px;
+    font-size: 10.5px; font-weight: 600;
+  }
+  .sum-lane-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .sum-chain { display: flex; align-items: center; flex-wrap: wrap; gap: 1px; }
+  .sum-node {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 2px 7px; border-radius: 5px; border: 1px solid transparent;
+    font-size: 10px; white-space: nowrap; line-height: 1.5;
+  }
+  .sum-node.em { font-weight: 700; }
+  .sum-node.end-node {
+    font-size: 10px; font-weight: 400; border-style: dashed;
+  }
+  .sum-arr { padding: 0 3px; color: #c7c7cc; font-size: 9px; line-height: 1; }
+  .sum-merge {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 6px; border-radius: 10px;
+    font-size: 10px; white-space: nowrap; line-height: 1.5;
+    border: 1px dashed; opacity: 0.75;
+  }
+  .sum-tabs {
+    display: flex; align-items: center; gap: 3px; flex-shrink: 0;
+  }
+  .sum-tab {
+    padding: 3px 10px; border-radius: 6px; border: 1px solid var(--vis-border);
+    background: transparent; color: var(--vis-muted);
+    font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit;
+  }
+  .sum-tab:hover { background: rgba(0,0,0,0.04); color: var(--vis-text); }
+  .sum-tab.active { background: #1d1d1f; border-color: #1d1d1f; color: #f5f5f7; }
+  .sum-v2-swatch {
+    width: 10px; height: 10px; border-radius: 3px; border: 1px solid;
+  }
+  .sum-v2-swatch.new { background: #007aff; border-color: #007aff; }
+  .sum-v2-swatch.changed { background: #ff9500; border-color: #ff9500; }
+  .sum-v2-swatch.legacy { background: #ececef; border-color: #b8b8bd; opacity: 0.58; }
+
+  /* ── 图例（单行） ── */
+  .meta-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px;
+    padding: 7px 20px;
+    background: var(--vis-chrome);
+    border-bottom: 0.5px solid var(--vis-border);
+    backdrop-filter: saturate(180%) blur(12px);
+    flex-shrink: 0;
+  }
+  .leg {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--vis-muted);
+    padding: 0;
+    background: transparent; border: none;
+  }
+  .leg-swatch { width: 9px; height: 9px; border-radius: 3px; border: 1px solid; }
+  .leg-line {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--vis-muted);
+    padding: 0; background: transparent; border: none;
+  }
+  .leg-line svg { display: block; }
+
+  #full-flow { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+  body[data-flow-ver="2.0"] #full-flow { display: none; }
+  body[data-flow-ver="2.0"] .topbar-right { display: none; }
+
+  /* ── 脚注栏 ── */
+  .footnotes {
+    flex-shrink: 0;
+    padding: 6px 20px;
+    background: var(--vis-warn-bg);
+    border-top: 0.5px solid var(--vis-warn-border);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px;
+  }
+  .fn-item {
+    font-size: 11px; color: var(--vis-warn-text); line-height: 1.5;
+  }
+
+  /* ── 画布 ── */
+  .canvas-wrap {
+    flex: 1; overflow: hidden; position: relative;
+    cursor: grab;
+    background-color: var(--vis-bg);
+    background-image: radial-gradient(circle, var(--vis-dot) 1px, transparent 1px);
+    background-size: 20px 20px;
+    touch-action: none;
+  }
+  .canvas-wrap.drag { cursor: grabbing; }
+  #wrap {
+    position: absolute; top: 0; left: 0;
+    transform-origin: 0 0; will-change: transform;
+  }
+  #svg { display: block; overflow: visible; }
+  .flow-icon {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; height: 100%; line-height: 1;
+  }
+  .edge-tip {
+    position: fixed; z-index: 200; pointer-events: none;
+    padding: 6px 10px; max-width: 260px;
+    font-size: 11px; line-height: 1.45; color: #f5f5f7;
+    background: rgba(29, 29, 31, 0.92); border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  }
+  .edge-hint { cursor: help; }
+  .edge-hint .hint-badge { opacity: 0.78; transition: opacity 0.12s ease; }
+  .edge-hint .hint-ring {
+    opacity: 0.42; transition: opacity 0.12s ease, stroke-width 0.12s ease;
+    pointer-events: none;
+  }
+  .edge-hint:hover .hint-badge { opacity: 1; }
+  .edge-hint:hover .hint-ring { opacity: 0.9; stroke-width: 1.4; }
+  .note-ribbon { cursor: help; }
+
+  /* ── 符号说明（顶栏专用） ── */
+  .leg-markers {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 5px 10px;
+    padding: 0; background: transparent; border: none;
+  }
+  .leg-markers-title {
+    font-size: 10px; font-weight: 600; color: var(--vis-text);
+    padding-right: 8px; border-right: 0.5px solid var(--vis-border); margin-right: 2px;
+  }
+  .leg-marker {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--vis-muted);
+  }
+  .leg-marker-ico { font-size: 12px; line-height: 1; }
+  .leg-marker-swatch {
+    width: 9px; height: 9px; border-radius: 3px;
+    background: #007aff; border: none;
+  }
+
+</style>
+</head>
+<body data-flow-ver="1.0">
+
+<div class="topbar">
+  <div class="topbar-left">
+    <a class="back-link" href="index.html">← 目录</a>
+    <span class="topbar-title">Moment Log · User Flow</span>
+  </div>
+  <nav class="topbar-nav" aria-label="Site">
+    <a class="nav-link" href="index.html">目录</a>
+    <a class="nav-link" href="buz_team.html">团队架构</a>
+    <a class="nav-link" href="buz_features.html">功能分类</a>
+    <a class="nav-link active" href="moment_log_flow.html">Moment Log</a>
+  </nav>
+  <div class="topbar-right">
+    <button type="button" class="tb-btn" id="zOut">−</button>
+    <span class="tb-lvl" id="zlvl">100%</span>
+    <button type="button" class="tb-btn" id="zIn">+</button>
+    <button type="button" class="tb-btn" id="zFit">全览</button>
+    <button type="button" class="tb-btn" id="z100">100%</button>
+  </div>
+</div>
+
+<div class="sum-bar expanded" id="sum-bar">
+  <div class="sum-header" id="sum-toggle">
+    <span class="sum-title">Moment Log · 用户旅程</span>
+    <div class="sum-tabs" id="sum-tabs">
+      <button type="button" class="sum-tab active" data-ver="1.0">1.0</button>
+      <button type="button" class="sum-tab" data-ver="2.0">2.0</button>
+    </div>
+    <span class="sum-desc" id="sum-desc">从多个入口录制、汇入与查看共享时刻记录</span>
+    <span class="sum-stat" id="sum-stat"></span>
+    <span class="sum-chevron">▾</span>
+  </div>
+  <div class="sum-body" id="sum-body"></div>
+</div>
+
+<div class="meta-bar" id="meta"></div>
+
+<div id="full-flow">
+  <div class="canvas-wrap" id="vp">
+    <div id="wrap"><svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg></div>
+  </div>
+  <div class="footnotes" id="footnotes"></div>
+</div>
+
+<div id="edge-tip" class="edge-tip" hidden></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   ① 数据：PHASES / LANES / STEPS / EDGES / NOTES
+   ② 规范：SPEC（文案·角色·层级） + GRID（格子） + VIS（配色）
+═══════════════════════════════════════════════════════════ */
+
+/* ── 图表规范 SPEC ─────────────────────────────────────────
+   节点 kind   entry 入口 | hub 枢纽 | page 页面 | action 操作
+               decision 分岔 | end 结束 | system 系统步
+   文案        主 label ≤8 字优先；英文 UI 保留，中文放 sub
+   泳道 tier   primary 主流程(record) | response 响应路径
+   连线标签    仅写路径关系，灰色小字，不与节点抢层级
+   页内/汇入   虚线；跨泳道响应线降透明度
+────────────────────────────────────────────────────────── */
+const SPEC = {
+  primaryLane: 'record',
+  laneOpacity: { primary: 0.09, response: 0.035 },
+  crossLaneOpacity: 0.42,
+  kinds: {
+    entry:    { marker: null,   labelFw: '600' },
+    hub:      { marker: null,   labelFw: '600' },
+    page:     { marker: null,   labelFw: '600' },
+    action:   { marker: null,   labelFw: '500' },
+    decision: { marker: '🔀',   labelFw: '600' },
+    system:   { marker: null,   labelFw: '500' },
+    end:      { marker: null,    labelFw: '500' },
+  },
+  /** 图例符号：与画布内标注一一对应 */
+  markers: {
+    decision: '🔀',
+    footnoteNums: ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣'],
+    footnoteNum(id) {
+      return this.footnoteNums[id - 1] || String(id);
+    },
+    edgeTip: 'ℹ️',
+    emphasisLabel: '关键步骤',
+  },
+  edgeLabel: {
+    fill: '#636366', bg: '#ffffff', border: '#e5e5ea',
+    fs: 8, fw: '500', padX: 6, padY: 4,
+    /** 路径说明：悬停透明热区显示，画布上不渲染 pill / i 图标 */
+    inlineMax: 6,
+  },
+  /** 节点脚注：右上角斜切三角 ribbon，sz = 三角直角边长 */
+  noteBadge: { sz: 22 },
+  stats: () => `${LANES.length} 泳道 · ${PHASE_HEADERS.length} 阶段 · ${STEPS.length} 步`,
+  /** 主流程节点（录制泳道叙事主线，用于轻高亮） */
+  primaryPath: [
+    'startA', 'home', 'mainPage', 'clickRec', 'camera', 'config', 'rec2s',
+    'caption', 'sendTo', 'switchTab', 'recent', 'choose', 'send',
+  ],
+  /** 关键步骤：语义描边色作底 + 白字（枢纽 / 主页面 / 汇入点） */
+  emphasisNodes: ['home', 'mainPage', 'camera', 'sendTo', 'logdet'],
+  mergeNodes: ['camera', 'logdet'],
+  regions: [
+    {
+      id: 'capture',
+      label: '拍摄 & Send To',
+      cols: ['shoot', 'shoot-cfg', 'shoot-rec', 'sendto-cap', 'sendto', 'sendto-switch', 'sendto-tabs', 'sendto-choose', 'sendto-out'],
+      fromLane: 'record',
+      toLane: 'invite',
+      accent: 'record',
+    },
+    {
+      id: 'logdetail',
+      label: 'Log 详情 & 导出',
+      cols: ['detail', 'detail-browse', 'export-btn', 'export', 'export-act'],
+      fromLane: 'aura',
+      toLane: 'list',
+      accent: 'view',
+    },
+  ],
+  /** 结束落地：goto 跳转 · stay 停留当前页 */
+  endLandings: {
+    end1: { type: 'goto', page: '功能主页', note: '视频同步写入双方Log详情' },
+    end2: { type: 'goto', page: '功能主页', note: '邀请发出后返回功能主页' },
+    end3: { type: 'stay', page: '当日记录', note: '停留在当日记录，无跳转' },
+    end4: { type: 'stay', page: 'Log详情', note: '分享面板关闭后回到详情页' },
+  },
+};
+
+/* ── 格子布局规范 GRID ─────────────────────────────────────
+   格址        泳道列（第 0 列，正方徽章）+ lane × col；同址多步骤用 slot 竖排
+   容器        User Flow 默认正方格；分岔节点画菱形（外接正方形容器）
+   列宽        colW ± minColW/maxColW
+   块尺寸      正方固定 squareSide；超高增高；菱形 × diamondScale 且贴合文案
+   行高        每泳道按本行最高块自适应
+   内容区      格内缩 cellPad；块在 slot 内居中
+   排版        图标/标记 + 文案整组垂直居中
+   圆角        sheet 12 · block 8（节点/泳道/菱形）· pill 5（贴标/脚注）
+   连线锚点    块四边 port，外扩 nodePad；菱形取四顶点
+────────────────────────────────────────────────────────── */
+const CFG = {
+  rowGutter: 80,
+  headerPhaseH: 36,
+  headerColH: 26,
+  headerH: 62,
+  colGap: 5,
+  phaseGap: 10,
+  /** 列宽：默认单元格宽度（≈ 正方格边长 + 两侧 cellPad） */
+  colW: 80,
+  minColW: 72,
+  maxColW: 96,
+  /** 块容器：标准正方边长固定；min/max 仅用于超高块或特例 */
+  squareSide: 68,
+  minBlock: 48,
+  maxBlock: 100,
+  minLaneH: 0,
+  cellPad: 6,
+  cellSplitGap: 4,
+  nodeInset: 0,
+  textPad: 10,
+  labelSubGap: 8,
+  lineGap: 5,
+  footerH: 0,
+  canvasPad: 20,
+  nodePad: 3,
+  tailPad: 12,
+  laneIconSz: 10,
+  laneIconGap: 4,
+  entryIconSz: 13,
+  entryIconGap: 4,
+  markerSz: 11,
+  markerGap: 4,
+  /** 菱形外接框相对 squareSide 放大系数 */
+  diamondScale: 1.2,
+  iconMode: 'emoji',
+};
+
+const GRID = {
+  clamp(v, lo, hi) {
+    return Math.max(lo, Math.min(hi, v));
+  },
+
+  colInnerW(colW) {
+    return colW - CFG.cellPad * 2;
+  },
+
+  /** 列内容区 → 块最大可用宽度 */
+  blockW(innerW) {
+    return this.clamp(innerW, CFG.minBlock, CFG.maxBlock);
+  },
+
+  /** 文案 → 紧凑排版档位 */
+  scaleForNeed(need) {
+    return this.typeScale(need >= 56 ? 'roomy' : need >= 40 ? 'normal' : 'compact');
+  },
+
+  /** 标准正方边长（固定，不随文案伸缩） */
+  fixedSquare(maxW) {
+    return this.clamp(CFG.squareSide, CFG.minBlock, Math.min(CFG.maxBlock, maxW));
+  },
+
+  /** 在固定边长 side 下估算内容高度 */
+  measureContentH(step, side) {
+    const spec = SPEC.kinds[step.kind] || SPEC.kinds.system;
+    const scale = this.scaleForNeed(side);
+
+    let topExtra = 0;
+    if (step.entryIcon) topExtra = CFG.entryIconSz + CFG.entryIconGap;
+    else if (step.tag) topExtra = scale.tag + CFG.markerGap;
+    else if (step.kind === 'decision' && spec.marker) topExtra = CFG.markerSz + CFG.markerGap;
+
+    const maxChars = this.maxLabelChars(side, scale.label);
+    const labelLines = this.wrapLines(step.label, maxChars);
+    const lineStep = scale.label + CFG.lineGap;
+    const labelH = labelLines.length * lineStep - CFG.lineGap;
+
+    let needH = CFG.textPad * 2 + topExtra + labelH;
+    if (step.kind === 'end' && step.dest) {
+      needH = CFG.textPad * 2 + scale.label + CFG.labelSubGap + scale.sub;
+    } else if (step.sub) {
+      const subMax = this.maxLabelChars(side, scale.sub);
+      const subLines = this.wrapLines(step.sub, subMax);
+      const subLineStep = scale.sub + CFG.lineGap;
+      needH += CFG.labelSubGap + subLines.length * subLineStep - CFG.lineGap;
+    }
+    return { needH, labelLines, scale };
+  },
+
+  /** 方节点固定 squareSide；仅内容超高时增高；菱形 × diamondScale */
+  measureBlock(step, innerW) {
+    const maxW = this.blockW(innerW);
+    const side = this.fixedSquare(maxW);
+    const { needH } = this.measureContentH(step, side);
+
+    if (step.kind === 'decision') {
+      let dSide = this.clamp(side * CFG.diamondScale, CFG.minBlock, CFG.maxBlock);
+      const { needH } = this.measureContentH(step, dSide);
+      dSide = this.clamp(Math.max(dSide, needH), CFG.minBlock, CFG.maxBlock);
+      return { w: dSide, h: dSide, square: true, diamond: true };
+    }
+
+    if (needH <= side) {
+      return { w: side, h: side, square: true, diamond: false };
+    }
+
+    return {
+      w: side,
+      h: this.clamp(needH, CFG.minBlock, CFG.maxBlock),
+      square: false,
+      diamond: false,
+    };
+  },
+
+  /** 泳道徽章：与流程块同固定正方 */
+  measureLaneBlock(lane, gutterW) {
+    const maxW = this.blockW(this.colInnerW(gutterW));
+    const side = this.fixedSquare(maxW);
+    const scale = this.scaleForNeed(side);
+    const tagLines = this.wrapLines(lane.tag, this.maxLabelChars(side, scale.label));
+    const lineStep = scale.label + CFG.lineGap;
+    const tagH = tagLines.length * lineStep - CFG.lineGap;
+    let needH = CFG.textPad * 2 + CFG.laneIconSz + CFG.laneIconGap + tagH;
+    if (lane.hint) needH += CFG.labelSubGap + scale.sub;
+
+    if (needH <= side) {
+      return { w: side, h: side, square: true, tagLines, scale };
+    }
+    return {
+      w: side,
+      h: this.clamp(needH, CFG.minBlock, CFG.maxBlock),
+      square: false,
+      tagLines,
+      scale,
+    };
+  },
+
+  /** 泳道徽章几何（在泳道行内居中） */
+  laneBadgeGeom(lane, gutterW) {
+    const block = this.measureLaneBlock(lane, gutterW);
+    const content = this.sceneContentRect(lane, gutterW);
+    const cx = (content.x1 + content.x2) / 2;
+    const cy = (content.y1 + content.y2) / 2;
+    return {
+      ...block,
+      cx, cy,
+      lx: cx - block.w / 2,
+      rx: cx + block.w / 2,
+      ty: cy - block.h / 2,
+      by: cy + block.h / 2,
+      tier: this.tier(block.h),
+    };
+  },
+
+  /** 同格竖向叠放总高 */
+  stackH(heights) {
+    const gaps = CFG.cellSplitGap * Math.max(0, heights.length - 1);
+    return heights.reduce((a, b) => a + b, 0) + gaps;
+  },
+
+  /** 块高 → 排版档位 */
+  tier(h) {
+    if (h < 44) return 'compact';
+    if (h < 58) return 'normal';
+    return 'roomy';
+  },
+
+  /** 档位 → 正文字号 / 副文字号 / tag 字号 */
+  typeScale(tier) {
+    return ({
+      compact: { label: 9,   sub: 7.5, tag: 9  },
+      normal:  { label: 9.5, sub: 8,   tag: 10 },
+      roomy:   { label: 10,  sub: 8.5, tag: 10 },
+    })[tier];
+  },
+
+  /** 按标点/空格智能折行（最多 2 行） */
+  wrapLines(text, maxChars) {
+    if (text.length <= maxChars) return [text];
+    const breaks = [' / ', '·', ' /', '/ ', ' ', '/'];
+    let best = null;
+    for (const sep of breaks) {
+      let from = 0;
+      while (from < text.length) {
+        const i = text.indexOf(sep, from);
+        if (i <= 0) break;
+        const a = text.slice(0, i).trim();
+        const b = text.slice(i + sep.length).trim();
+        if (a && b && a.length <= maxChars + 1 && b.length <= maxChars + 1) {
+          const score = Math.max(a.length, b.length);
+          if (!best || score < best.score) best = { lines: [a, b], score };
+        }
+        from = i + sep.length;
+      }
+    }
+    if (best) return best.lines;
+    const mid = Math.ceil(text.length / 2);
+    return [text.slice(0, mid), text.slice(mid)];
+  },
+
+  maxLabelChars(nodeW, fontSize) {
+    const inner = nodeW - CFG.textPad * 2;
+    // 0.68 covers mixed CJK (≈1× em) + Latin (≈0.58× em) content
+    return Math.max(4, Math.floor(inner / (fontSize * 0.68)));
+  },
+
+  insetRect(rect) {
+    const p = CFG.nodeInset;
+    return {
+      x1: rect.x1 + p, x2: rect.x2 - p,
+      y1: rect.y1 + p, y2: rect.y2 - p,
+      w: rect.w - p * 2, h: rect.h - p * 2,
+    };
+  },
+
+  /** 圆角：sheet 12 · block 8 · pill 5 */
+  radius(kind = 'block') {
+    const r = VIS.radius;
+    if (kind === 'sheet') return r.sheet;
+    if (kind === 'pill') return r.pill;
+    return r.block;
+  },
+
+  /** 菱形几何：旋转圆角正方，顶点贴外接框，圆角与 block 一致 */
+  diamondGeom(cx, cy, w, h) {
+    const side = Math.min(w, h);
+    const inner = side / Math.SQRT2;
+    const rx = this.clamp(this.radius('block'), 2, inner * 0.24);
+    return { side, inner, rx, cx, cy, half: side / 2 };
+  },
+
+  /** 格内容区矩形（lane × col） */
+  contentRect(lane, col) {
+    return {
+      x1: col.x1 + CFG.cellPad,
+      x2: col.x2 - CFG.cellPad,
+      y1: lane.y1 + CFG.cellPad,
+      y2: lane.y2 - CFG.cellPad,
+    };
+  },
+
+  /** 场景列（第 0 列）内容区 — 与主表 cellPad / nodeInset 一致 */
+  sceneContentRect(lane, gutterW) {
+    return {
+      x1: CFG.cellPad,
+      x2: gutterW - CFG.cellPad,
+      y1: lane.y1 + CFG.cellPad,
+      y2: lane.y2 - CFG.cellPad,
+    };
+  },
+
+  /** 同格各 slot 占位矩形（按实测块高叠放，整体垂直居中） */
+  slotRects(content, heights) {
+    const innerH = content.y2 - content.y1;
+    const total = this.stackH(heights);
+    let y = content.y1 + (innerH - total) / 2;
+    return heights.map((h, i) => {
+      const rect = {
+        x1: content.x1, x2: content.x2,
+        y1: y, y2: y + h,
+        w: content.x2 - content.x1, h,
+      };
+      y += h + (i < heights.length - 1 ? CFG.cellSplitGap : 0);
+      return rect;
+    });
+  },
+
+  /** 块 → 布局节点几何（块在 slot 内居中） */
+  toNodeGeom(step, lane, col, slotRect, block, slot, slotCount) {
+    const cx = (slotRect.x1 + slotRect.x2) / 2;
+    const cy = (slotRect.y1 + slotRect.y2) / 2;
+    const lx = cx - block.w / 2;
+    const rx = cx + block.w / 2;
+    const ty = cy - block.h / 2;
+    const by = cy + block.h / 2;
+    return {
+      ...step, cx, cy, w: block.w, h: block.h,
+      lx, rx, ty, by,
+      lane, col,
+      cellSplit: slotCount > 1,
+      slot, slotCount,
+      square: block.square,
+      diamond: block.diamond,
+      tier: this.tier(block.h),
+    };
+  },
+
+  /** 正文垂直中心（图标/标记与文案整组居中） */
+  textCenter(node) {
+    return node.cy;
+  },
+};
+
+/* ── 视觉规范 VIS ── 改这里统一全图风格 ────────────────────
+   Token 层级
+     radius   sheet 12 / block 8 / pill 5
+     stroke   node 1 / edge-main 2 / edge-aux 1.5
+     color    5 语义色 × 3 深度 + special（hub / end）
+   ──────────────────────────────────────────────────────── */
+const VIS = {
+  radius: { sheet: 12, block: 8, pill: 5 },
+
+  canvas:  { sheet: '#ffffff', bg: '#f5f5f7', dot: '#dddde6' },
+  header:  { bg: '#fafafa', title: '#1d1d1f', sub: '#8e8e93', divider: '#e5e5ea' },
+  grid:    { cell: '#e5e5ea', phaseMajor: '#d1d1d6', laneLine: '#e5e5ea' },
+
+  edge: {
+    wMain: 2, wAux: 1.5,
+    dash: '5 4', tabDash: '4 3',
+    neutral: '#c7c7cc', opacityAux: 0.8,
+    grad:      { start: 0.18, mid: 0.55, end: 0.92 },
+    gradFaint: { start: 0.08, mid: 0.25, end: 0.45 },
+  },
+
+  /** sw 1 所有节点统一 1px 描边 */
+  node: { sw: 1, swBold: 1, swStart: 1 },
+
+  /**
+   * 5 语义色，每色 3 档
+   *   fill    浅底（15-25% 饱和）
+   *   stroke  饱和色（描边 / 连线 / 泳道底）
+   *   text    深色同族文字
+   */
+  palette: {
+    record: { fill: '#d6e6ff', stroke: '#007aff', text: '#003d99', line: '#007aff', lane: '#d6e6ff', laneTc: '#0055cc' },
+    view:   { fill: '#cceedd', stroke: '#34c759', text: '#1a6b30', line: '#34c759', lane: '#cceedd', laneTc: '#248a3d' },
+    invite: { fill: '#ffe4c0', stroke: '#ff9500', text: '#7a3a00', line: '#ff9500', lane: '#ffe4c0', laneTc: '#b36800' },
+    export: { fill: '#e8d2f7', stroke: '#af52de', text: '#6a2f9a', line: '#af52de', lane: '#e8d2f7', laneTc: '#8944ab' },
+    system: { fill: '#e5e5ea', stroke: '#8e8e93', text: '#2c2c2e', line: '#aeaeb2', lane: '#e5e5ea', laneTc: '#636366' },
+  },
+
+  /** 特殊节点覆盖（不属于某一语义色） */
+  special: {
+    hub: { fill: '#e5e5ea', stroke: '#8e8e93', tc: '#1d1d1f' },
+    end: { fill: '#f5f5f7', stroke: '#c7c7cc', tc: '#8e8e93' },
+  },
+
+  roles: {
+    start: 'record', startB: 'invite', end: 'system', hub: 'system',
+    branch: 'invite', system: 'system',
+    record: 'record', view: 'view', invite: 'invite', export: 'export',
+  },
+
+  style(role) {
+    const key = VIS.roles[role] || 'system';
+    const p = VIS.palette[key];
+    const base = { fill: p.fill, stroke: p.stroke, tc: p.text, fw: '600', sw: VIS.node.sw };
+    if (role === 'start' || role === 'startB') return { ...base, sw: VIS.node.swStart };
+    if (role === 'hub') {
+      const s = VIS.special.hub;
+      return { ...base, fill: s.fill, stroke: s.stroke, tc: s.tc, fw: '700', sw: VIS.node.swBold };
+    }
+    if (role === 'branch') return { ...base, fw: '700', sw: VIS.node.swBold };
+    if (role === 'end') {
+      const s = VIS.special.end;
+      return { ...base, fill: s.fill, stroke: s.stroke, tc: s.tc, fw: '500', dash: '4 3' };
+    }
+    return base;
+  },
+
+  line(kind) {
+    const p = VIS.palette[kind] || VIS.palette.system;
+    return { stroke: p.line, w: VIS.edge.wMain };
+  },
+};
+
+const STYLES = Object.fromEntries(
+  [...Object.keys(VIS.roles), 'record', 'view', 'invite', 'export', 'system']
+    .filter((v, i, a) => a.indexOf(v) === i)
+    .map(k => [k, VIS.style(k)])
+);
+
+const LINE = Object.fromEntries(
+  Object.keys(VIS.palette).map(k => [k, VIS.line(k)])
+);
+
+/** 关键步骤 → 语义色实底 + 白字 */
+function resolveNodeStyle(step) {
+  const base = STYLES[step.type] || STYLES.system;
+  if (!SPEC.emphasisNodes.includes(step.id)) return base;
+  return {
+    ...base,
+    fill: base.stroke,
+    stroke: base.stroke,
+    tc: '#ffffff',
+    subTc: 'rgba(255,255,255,0.78)',
+    em: true,
+    sw: VIS.node.swBold,
+  };
+}
+
+/** 跨泳道响应线是否降透明度（关键步 / 主路径 / 汇入除外） */
+function edgeShouldFaint(e, a, b) {
+  if (e.route === 'merge' || a.lane.id === b.lane.id) return false;
+  if (SPEC.emphasisNodes.includes(e.from) || SPEC.emphasisNodes.includes(e.to)) return false;
+  if (SPEC.primaryPath.includes(e.from) && SPEC.primaryPath.includes(e.to)) return false;
+  return true;
+}
+
+const LEGEND = [
+  { label: '创建 / 录制', ...VIS.palette.record },
+  { label: '查看 / 浏览', ...VIS.palette.view },
+  { label: '邀请 / 响应', ...VIS.palette.invite },
+  { label: '导出 / 保存', ...VIS.palette.export },
+  { label: '系统 / 辅助', ...VIS.palette.system },
+].map(({ label, fill, stroke }) => ({ label, fill, stroke }));
+
+// 布局列（w 可选；默认 colW 80；宽列仅给多 slot / 长文案）
+const PHASES = [
+  { id: 'entry' },
+  { id: 'app' },
+  { id: 'invite-reply' },
+  { id: 'notify-type' },
+  { id: 'notify-open' },
+  { id: 'hub' },
+  { id: 'hub-cta',        w: 96 },
+  { id: 'hub-view' },
+  { id: 'shoot' },
+  { id: 'shoot-cfg' },
+  { id: 'shoot-rec' },
+  { id: 'sendto-cap' },
+  { id: 'sendto' },
+  { id: 'sendto-switch' },
+  { id: 'sendto-tabs',    w: 96 },
+  { id: 'sendto-choose' },
+  { id: 'sendto-out',     w: 96 },
+  { id: 'detail',         w: 96 },
+  { id: 'detail-browse',  w: 96 },
+  { id: 'export-btn' },
+  { id: 'export' },
+  { id: 'export-act' },
+  { id: 'end',            w: 96 },
+];
+
+/** 表头两级：阶段带（accent 顶条 + 主副标题）+ 列组标签 */
+const PHASE_HEADERS = [
+  {
+    label: '进入', accent: 'system',
+    cols: ['entry', 'app', 'invite-reply', 'notify-type', 'notify-open'],
+    groups: [
+      { label: '启动', cols: ['entry', 'app'] },
+      { label: '推送', cols: ['invite-reply', 'notify-type', 'notify-open'] },
+    ],
+  },
+  {
+    label: '功能主页', sub: 'Moment Log', accent: 'system',
+    cols: ['hub', 'hub-cta', 'hub-view'],
+    groups: [
+      { label: '枢纽', cols: ['hub'] },
+      { label: '入口', cols: ['hub-cta'] },
+      { label: '浏览', cols: ['hub-view'] },
+    ],
+  },
+  {
+    label: '拍摄', sub: '录制与汇入', accent: 'record',
+    cols: ['shoot', 'shoot-cfg', 'shoot-rec'],
+    groups: [
+      { label: '界面', cols: ['shoot'] },
+      { label: '设置', cols: ['shoot-cfg'] },
+      { label: '录制', cols: ['shoot-rec'] },
+    ],
+  },
+  {
+    label: 'Send To', sub: '发送 / 邀请', accent: 'record',
+    cols: ['sendto-cap', 'sendto', 'sendto-switch', 'sendto-tabs', 'sendto-choose', 'sendto-out'],
+    groups: [
+      { label: '配文', cols: ['sendto-cap'] },
+      { label: '页面', cols: ['sendto', 'sendto-switch'] },
+      { label: 'Tab', cols: ['sendto-tabs'] },
+      { label: '操作', cols: ['sendto-choose', 'sendto-out'] },
+    ],
+  },
+  {
+    label: 'Log 详情', sub: '多路径汇入', accent: 'view',
+    cols: ['detail', 'detail-browse'],
+    groups: [
+      { label: '详情', cols: ['detail'] },
+      { label: '浏览', cols: ['detail-browse'] },
+    ],
+  },
+  {
+    label: '导出', accent: 'export',
+    cols: ['export-btn', 'export', 'export-act'],
+    groups: [
+      { label: '触发', cols: ['export-btn'] },
+      { label: '生成', cols: ['export'] },
+      { label: '分享', cols: ['export-act'] },
+    ],
+  },
+  {
+    label: '结束', sub: '落地页', accent: 'system',
+    cols: ['end'],
+  },
+];
+
+// 泳道（行）
+const LANES = [
+  { id: 'push',   tag: '推送响应',   hint: '通知入口', icon: 'bell',   line: 'system' },
+  { id: 'record', tag: '录制共享',   hint: '主流程',   icon: 'record', line: 'record' },
+  { id: 'invite', tag: '聊天响应',   hint: '邀请汇入', icon: 'chat',   line: 'invite' },
+  { id: 'aura',   tag: '光圈查看',   hint: '快捷浏览', icon: 'aura',   line: 'view' },
+  { id: 'today',  tag: 'My Moment', hint: '当日回顾', icon: 'today',  line: 'view' },
+  { id: 'list',   tag: '列表与导出', hint: '历史导出', icon: 'list',   line: 'export' },
+].map(ln => {
+  const p = VIS.palette[ln.line];
+  const tier = ln.id === SPEC.primaryLane ? 'primary' : 'response';
+  return {
+    ...ln, fill: p.lane, tc: p.laneTc,
+    tier,
+    opacity: SPEC.laneOpacity[tier],
+  };
+});
+
+// 图标：系统 emoji（泳道列 + 入口节点）
+const ICONS = {
+  phone:  '📱',
+  bell:   '🔔',
+  record: '🎬',
+  aura:   '✨',
+  chat:   '💬',
+  today:  '📅',
+  list:   '📋',
+};
+
+// kind → 文案规范；type → 配色；lane+col+slot → 格址
+const STEPS = [
+  { id: 'startA', lane: 'record', col: 'entry',  type: 'start',  kind: 'entry', label: '主动启动', entryIcon: 'phone' },
+  { id: 'startB', lane: 'push',   col: 'entry',  type: 'startB', kind: 'entry', label: '推送通知', entryIcon: 'bell' },
+
+  { id: 'home',   lane: 'record', col: 'app',    type: 'hub',    kind: 'hub',      label: '应用主页' },
+
+  { id: 'pushType',  lane: 'push', col: 'notify-type', type: 'branch', kind: 'decision', label: '通知类型' },
+  { id: 'notifyStep',lane: 'push', col: 'notify-open', type: 'system', kind: 'action',   label: '打开通知' },
+
+  { id: 'mainPage', lane: 'record', col: 'hub', type: 'hub', kind: 'hub', label: '功能主页', sub: 'Moment Log' },
+
+  { id: 'clickRec', lane: 'record', col: 'hub-cta', type: 'record', kind: 'action', label: 'Log the Moment' },
+  { id: 'camera',   lane: 'record', col: 'shoot',   type: 'record', kind: 'page',   label: '拍摄界面', sub: '邀请汇入' },
+  { id: 'config',   lane: 'record', col: 'shoot-cfg', type: 'record', kind: 'action', label: '录制设置', sub: '音频/翻转/手电筒' },
+  { id: 'rec2s',    lane: 'record', col: 'shoot-rec', type: 'record', kind: 'action', label: '录制 2 秒' },
+
+  { id: 'caption',  lane: 'record', col: 'sendto-cap', type: 'record', kind: 'action', label: '添加描述' },
+  { id: 'sendTo',   lane: 'record', col: 'sendto',     type: 'system', kind: 'page',   label: 'Send To' },
+  { id: 'switchTab',lane: 'record', col: 'sendto-switch', type: 'branch', kind: 'decision', label: '切换 Tab' },
+  { id: 'recent',   lane: 'record', col: 'sendto-tabs', type: 'system', kind: 'page', label: 'Recent Logs', sub: 'Tab', slot: 0 },
+  { id: 'invTab',   lane: 'record', col: 'sendto-tabs', type: 'invite', kind: 'page', label: 'To Invite', sub: 'Tab', slot: 1 },
+  { id: 'choose',   lane: 'record', col: 'sendto-choose', type: 'branch', kind: 'decision', label: '选择操作' },
+  { id: 'send',     lane: 'record', col: 'sendto-out', type: 'record', kind: 'action', label: '发送视频', slot: 0 },
+  { id: 'sendInv',  lane: 'record', col: 'sendto-out', type: 'invite', kind: 'action', label: '发送并邀请', slot: 1 },
+  { id: 'end1',     lane: 'record', col: 'end', type: 'end', kind: 'end', label: '发送完成', dest: '返回功能主页', destType: 'goto', slot: 0 },
+  { id: 'end2',     lane: 'record', col: 'end', type: 'end', kind: 'end', label: '邀请完成', dest: '返回功能主页', destType: 'goto', slot: 1 },
+
+  { id: 'auraClick', lane: 'aura', col: 'app', type: 'view', kind: 'action', label: '点击光圈' },
+  { id: 'chatBox',   lane: 'invite', col: 'app', type: 'system', kind: 'page', label: '聊天页' },
+  { id: 'recvInv',   lane: 'invite', col: 'invite-reply', type: 'invite', kind: 'system', label: '邀请消息' },
+  { id: 'clickPost', lane: 'invite', col: 'hub-cta', type: 'invite', kind: 'action', label: 'Post to Join' },
+
+  { id: 'myMoment', lane: 'today', col: 'hub-cta', type: 'view', kind: 'action', label: 'My Moment' },
+  { id: 'todayRec', lane: 'today', col: 'hub-view', type: 'view', kind: 'page', label: '当日记录' },
+  { id: 'end3',     lane: 'today', col: 'end', type: 'end', kind: 'end', label: '浏览结束', dest: '留在当日记录', destType: 'stay' },
+
+  { id: 'logList',  lane: 'list', col: 'hub-cta', type: 'view', kind: 'action', label: 'Log List' },
+  { id: 'selFriend',lane: 'list', col: 'hub-view', type: 'view', kind: 'action', label: '选择对象', sub: '好友或群聊' },
+  { id: 'logdet',   lane: 'list', col: 'detail',  type: 'view', kind: 'hub', label: 'Log详情', sub: '光圈/列表汇入' },
+  { id: 'hourView', lane: 'list', col: 'detail-browse', type: 'view', kind: 'page', label: '按小时', sub: '默认视图', slot: 0 },
+  { id: 'toggle',   lane: 'list', col: 'detail-browse', type: 'view', kind: 'action', label: '日期选择', sub: '不可导出', slot: 1 },
+  { id: 'dayView',  lane: 'list', col: 'detail-browse', type: 'view', kind: 'page', label: '按天查看', sub: '历史日期', slot: 2 },
+  { id: 'exportBtn',lane: 'list', col: 'export-btn', type: 'export', kind: 'action', label: '导出' },
+  { id: 'genVideo', lane: 'list', col: 'export',  type: 'export', kind: 'action', label: '生成视频', sub: '有记录片段' },
+  { id: 'expAct',   lane: 'list', col: 'export-act', type: 'export', kind: 'action', label: '保存 / 转发' },
+  { id: 'end4',     lane: 'list', col: 'end', type: 'end', kind: 'end', label: '导出完成', dest: '留在Log详情', destType: 'stay' },
+];
+
+const EDGES = [
+  { from: 'startA', to: 'home',   line: 'record' },
+  { from: 'startB', to: 'pushType', line: 'system' },
+  { from: 'pushType', to: 'notifyStep', line: 'system', route: 'fork', label: '互动提醒',    labelT: 0.38 },
+  { from: 'pushType', to: 'notifyStep', line: 'system', route: 'fork', label: '定时录制提醒', labelT: 0.62, tip: true },
+  { from: 'notifyStep', to: 'mainPage', line: 'system' },
+
+  { from: 'home', to: 'mainPage', line: 'record', route: 'fork', label: '右上角入口' },
+  { from: 'home', to: 'auraClick', line: 'view', route: 'fork', label: '头像光圈' },
+  { from: 'home', to: 'chatBox', line: 'invite', route: 'fork', label: '消息预览' },
+  { from: 'mainPage', to: 'clickRec', line: 'record' },
+  { from: 'clickRec', to: 'camera', line: 'record' },
+  { from: 'camera', to: 'config', line: 'record' },
+  { from: 'config', to: 'rec2s', line: 'record' },
+  { from: 'rec2s', to: 'caption', line: 'record' },
+  { from: 'caption', to: 'sendTo', line: 'record' },
+  { from: 'sendTo', to: 'switchTab', line: 'system' },
+  { from: 'switchTab', to: 'recent', line: 'system', route: 'fork', label: 'Recent' },
+  { from: 'switchTab', to: 'invTab', line: 'invite', route: 'fork', label: 'To Invite', tip: true },
+  { from: 'recent', to: 'invTab', line: 'system', route: 'tab', label: '切换 Tab', labelT: 0.72 },
+  { from: 'invTab', to: 'recent', line: 'system', route: 'tab' },
+  { from: 'switchTab', to: 'choose', line: 'system', label: '当前 Tab', labelT: 0.78, tip: true },
+  { from: 'recent', to: 'choose', line: 'system' },
+  { from: 'invTab', to: 'choose', line: 'invite' },
+  { from: 'choose', to: 'send', line: 'record', route: 'split', label: '发送' },
+  { from: 'choose', to: 'sendInv', line: 'invite', route: 'split', label: '邀请' },
+  { from: 'send',    to: 'end1', line: 'record', label: '返回功能主页', tip: true },
+  { from: 'sendInv', to: 'end2', line: 'invite', label: '返回功能主页', tip: true },
+
+  { from: 'auraClick', to: 'logdet', line: 'view', label: '汇入' },
+
+  { from: 'chatBox', to: 'recvInv', line: 'invite' },
+  { from: 'recvInv', to: 'clickPost', line: 'invite' },
+  { from: 'clickPost', to: 'camera', line: 'invite', route: 'merge', label: '汇入' },
+
+  { from: 'mainPage', to: 'myMoment', line: 'view', route: 'fork', label: 'My Moment', tip: true },
+  { from: 'myMoment', to: 'todayRec', line: 'view' },
+  { from: 'todayRec', to: 'end3', line: 'view', label: '停留当前页' },
+
+  { from: 'mainPage', to: 'logList', line: 'view', route: 'fork', label: 'Log List', tip: true },
+  { from: 'logList', to: 'selFriend', line: 'view' },
+  { from: 'selFriend', to: 'logdet', line: 'view' },
+  { from: 'logdet',   to: 'hourView',  line: 'view',   route: 'inpage', label: '默认' },
+  { from: 'hourView', to: 'toggle',   line: 'view',   route: 'inpage', label: '切换日期' },
+  { from: 'toggle',   to: 'dayView',  line: 'view',   route: 'tab',    label: '选定日期' },
+  { from: 'hourView', to: 'exportBtn', line: 'export', route: 'inpage' },
+  { from: 'dayView',  to: 'exportBtn', line: 'export', route: 'inpage' },
+  { from: 'exportBtn', to: 'genVideo', line: 'export' },
+  { from: 'genVideo', to: 'expAct', line: 'export' },
+  { from: 'expAct', to: 'end4', line: 'export', label: '分享 sheet 关闭', tip: true },
+];
+
+// 结束落地说明（页脚展示；节点 dest 与之对应）
+const END_OUTCOMES = [
+  { step: 'end1', path: '录制 → Recent → 发送', ...SPEC.endLandings.end1 },
+  { step: 'end2', path: '录制 → To Invite → 邀请', ...SPEC.endLandings.end2 },
+  { step: 'end3', path: 'My Moment → 当日记录', ...SPEC.endLandings.end3 },
+  { step: 'end4', path: '详情 → 导出 → 保存转发', ...SPEC.endLandings.end4 },
+  { path: '光圈 / 列表查看', type: 'stay', page: 'Log详情', note: '无独立结束步，流程止于详情页浏览' },
+];
+
+// 页脚注释（对应原稿虚线提示）
+const NOTES = [
+  { id: 1, anchor: 'sendInv', text: '对方未接受前，详情页仅显示发起方内容' },
+  { id: 2, anchor: 'expAct',  text: '暂不支持应用内直接分享' },
+  { id: 3, anchor: 'dayView', text: '无独立个人历史入口，需在详情页切换日期' },
+];
+
+/* ═══════════════════════════════════════════════════════════
+   ② 布局引擎
+═══════════════════════════════════════════════════════════ */
+let L = {};
+
+function layout() {
+  const cellGroups = {};
+  STEPS.forEach(s => {
+    const key = `${s.lane}:${s.col}`;
+    if (!cellGroups[key]) cellGroups[key] = [];
+    cellGroups[key].push(s);
+  });
+
+  const phaseStarts = new Set(
+    PHASE_HEADERS.filter((_, i) => i > 0).map(h => h.cols[0])
+  );
+  let x = CFG.rowGutter;
+  const cols = {};
+  PHASES.forEach((p, i) => {
+    if (phaseStarts.has(p.id)) x += CFG.phaseGap;
+    const w = GRID.clamp(p.w ?? CFG.colW, CFG.minColW, CFG.maxColW);
+    cols[p.id] = { ...p, x1: x, x2: x + w, cx: x + w / 2, w };
+    x += w + (i < PHASES.length - 1 ? CFG.colGap : 0);
+  });
+
+  const cellMetrics = {};
+  const laneStackMax = Object.fromEntries(LANES.map(ln => [ln.id, CFG.minBlock]));
+  Object.entries(cellGroups).forEach(([key, group]) => {
+    group.sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0));
+    const laneId = group[0].lane;
+    const col = cols[group[0].col];
+    const innerW = GRID.colInnerW(col.w);
+    const blocks = group.map(s => GRID.measureBlock(s, innerW));
+    const heights = blocks.map(b => b.h);
+    cellMetrics[key] = { blocks, heights };
+    laneStackMax[laneId] = Math.max(laneStackMax[laneId], GRID.stackH(heights));
+  });
+  LANES.forEach(ln => {
+    const badge = GRID.measureLaneBlock(ln, CFG.rowGutter);
+    laneStackMax[ln.id] = Math.max(laneStackMax[ln.id], badge.h);
+  });
+
+  const laneMap = {};
+  let laneY = CFG.headerH;
+  LANES.forEach(ln => {
+    const rowH = Math.max(CFG.minLaneH, laneStackMax[ln.id] + CFG.cellPad * 2);
+    const row = {
+      ...ln,
+      y1: laneY,
+      y2: laneY + rowH,
+      cy: laneY + rowH / 2,
+      h: rowH,
+    };
+    row.badge = GRID.laneBadgeGeom(row, CFG.rowGutter);
+    laneMap[ln.id] = row;
+    laneY += rowH;
+  });
+
+  const nodes = {};
+  Object.entries(cellGroups).forEach(([key, group]) => {
+    group.sort((a, b) => (a.slot ?? 0) - (b.slot ?? 0));
+    const lane = laneMap[group[0].lane];
+    const col = cols[group[0].col];
+    const content = GRID.contentRect(lane, col);
+    const { blocks, heights } = cellMetrics[key];
+    const slotCount = group.length;
+    const slots = GRID.slotRects(content, heights);
+    group.forEach((s, i) => {
+      nodes[s.id] = GRID.toNodeGeom(s, lane, col, slots[i], blocks[i], i, slotCount);
+    });
+  });
+
+  const innerW = x + CFG.tailPad;
+  const gridBottom = laneY + CFG.footerH;
+  const innerH = gridBottom;
+  const pad = CFG.canvasPad;
+  const laneList = LANES.map(ln => laneMap[ln.id]);
+  L = {
+    nodes, cols, lanes: laneMap,
+    colList: PHASES.map(p => cols[p.id]),
+    laneList,
+    GX: CFG.rowGutter,
+    laneH: Math.max(...laneList.map(ln => ln.h), 0),
+    gridBottom,
+    innerW, innerH, pad,
+    W: innerW + pad * 2,
+    H: innerH + pad * 2,
+  };
+}
+
+function N(id) { return L.nodes[id]; }
+
+const clamp01 = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+/** 连线锚点：贴块边界外扩 nodePad；菱形取四顶点 */
+function portOnSide(n, side, frac = 0.5) {
+  const p = CFG.nodePad;
+  if (n.diamond) {
+    const r = Math.min(n.w, n.h) / 2 + p;
+    switch (side) {
+      case 't': return { x: n.cx, y: n.cy - r };
+      case 'b': return { x: n.cx, y: n.cy + r };
+      case 'r': return { x: n.cx + r, y: n.cy };
+      case 'l': return { x: n.cx - r, y: n.cy };
+      default:  return { x: n.cx, y: n.cy };
+    }
+  }
+  const f = clamp01(frac, 0.18, 0.82);
+  switch (side) {
+    case 'r': return { x: n.rx + p, y: n.ty + n.h * f };
+    case 'l': return { x: n.lx - p, y: n.ty + n.h * f };
+    case 't': return { x: n.lx + n.w * f, y: n.ty - p };
+    case 'b': return { x: n.lx + n.w * f, y: n.by + p };
+    default:  return { x: n.cx, y: n.cy };
+  }
+}
+
+/** 按几何关系 + route 选择出入边与曲线类型 */
+function pickEdgeSides(a, b, route) {
+  const dx = b.cx - a.cx;
+  const dy = b.cy - a.cy;
+  const sameCol = a.col.id === b.col.id;
+  const sameLane = a.lane.id === b.lane.id;
+  const horiz = Math.abs(dx) >= Math.abs(dy) * 0.85;
+  const vert = Math.abs(dy) > Math.abs(dx) * 0.85;
+
+  if (route === 'tab' && sameCol) {
+    const up = dy < 0;
+    return { outSide: up ? 't' : 'b', inSide: up ? 'b' : 't', mode: 'vtab', dash: VIS.edge.tabDash };
+  }
+  if (route === 'merge') {
+    const outSide = horiz ? (dx >= 0 ? 'r' : 'l') : (dy >= 0 ? 'b' : 't');
+    return { outSide, inSide: dy < 0 ? 't' : (dx >= 0 ? 'l' : 'r'), mode: 'merge', dash: null };
+  }
+  if (route === 'split') {
+    return { outSide: dx >= 0 ? 'r' : 'l', inSide: dx >= 0 ? 'l' : 'r', mode: 'split', dash: null };
+  }
+  if (route === 'inpage') {
+    const jump = Math.abs(dx) > a.w * 1.35;
+    const arc = jump || !sameLane || Math.abs(dy) > a.h * 0.45;
+    return { outSide: dx >= 0 ? 'r' : 'l', inSide: dx >= 0 ? 'l' : 'r', mode: arc ? 'arc' : 'horiz', dash: VIS.edge.dash };
+  }
+  if (route === 'fork' || route === 'branch') {
+    if (sameLane && horiz) {
+      return { outSide: dx >= 0 ? 'r' : 'l', inSide: dx >= 0 ? 'l' : 'r', mode: 'horiz', dash: null };
+    }
+    if (vert || (!horiz && Math.abs(dy) > 16)) {
+      const down = dy >= 0;
+      return {
+        outSide: down ? 'b' : 't',
+        inSide: down ? (dx >= 0 ? 'l' : 't') : (dx >= 0 ? 'l' : 'b'),
+        mode: down ? 'fork-down' : 'fork-up',
+        dash: null,
+      };
+    }
+    return {
+      outSide: dx >= 0 ? 'r' : 'l',
+      inSide: dy >= 0 ? 't' : 'l',
+      mode: 'sweep',
+      dash: null,
+    };
+  }
+  if (sameCol && vert) {
+    const down = dy >= 0;
+    return { outSide: down ? 'b' : 't', inSide: down ? 't' : 'b', mode: 'vtab', dash: null };
+  }
+  if (horiz) {
+    return { outSide: dx >= 0 ? 'r' : 'l', inSide: dx >= 0 ? 'l' : 'r', mode: 'horiz', dash: null };
+  }
+  const down = dy >= 0;
+  return {
+    outSide: down ? 'b' : 't',
+    inSide: down ? 't' : 'b',
+    mode: down ? 'fork-down' : 'fork-up',
+    dash: null,
+  };
+}
+
+/** 同节点同侧多线时，按目标位置分散锚点 */
+function buildEdgePortMap() {
+  const outG = {}, inG = {};
+  EDGES.forEach((e, idx) => {
+    const a = N(e.from), b = N(e.to);
+    const { outSide, inSide } = pickEdgeSides(a, b, e.route);
+    const ok = `${e.from}:${outSide}`;
+    const ik = `${e.to}:${inSide}`;
+    if (!outG[ok]) outG[ok] = [];
+    if (!inG[ik]) inG[ik] = [];
+    outG[ok].push({ idx, sort: outSide === 'r' || outSide === 'l' ? b.cy : b.cx });
+    inG[ik].push({ idx, sort: inSide === 'r' || inSide === 'l' ? a.cy : a.cx });
+  });
+  const outFrac = {}, inFrac = {};
+  const spread = (groups, fracMap) => {
+    Object.values(groups).forEach(list => {
+      list.sort((x, y) => x.sort - y.sort);
+      const n = list.length;
+      list.forEach((item, i) => {
+        fracMap[item.idx] = n === 1 ? 0.5 : (i + 1) / (n + 1);
+      });
+    });
+  };
+  spread(outG, outFrac);
+  spread(inG, inFrac);
+  return { outFrac, inFrac };
+}
+
+function edgeLabelIsTip(str, forceTip = false) {
+  if (forceTip) return true;
+  return str.length > SPEC.edgeLabel.inlineMax || /[\/·]/.test(str);
+}
+
+/** 圆角方底（连线贴标 / 脚注 / 区域标签共用） */
+function drawPill(g, mk, mtxt, cx, cy, w, h, opts = {}) {
+  const op = opts.opacity ?? '1';
+  g.appendChild(mk('rect', {
+    x: cx - w / 2, y: cy - h / 2, width: w, height: h,
+    rx: opts.rx ?? GRID.radius('pill'),
+    fill: opts.fill ?? '#ffffff',
+    stroke: opts.stroke ?? '#e5e5ea',
+    'stroke-width': opts.strokeW ?? '0.5',
+    opacity: op,
+  }));
+  if (opts.text != null) {
+    g.appendChild(mtxt(cx, cy, opts.text, {
+      'font-size': opts.fs ?? 8,
+      fill: opts.textFill ?? '#8e8e93',
+      'font-weight': opts.fw ?? '500',
+      opacity: op,
+    }));
+  }
+}
+
+function edgeLabelRect(str) {
+  const el = SPEC.edgeLabel;
+  return {
+    w: Math.max(el.fs * 2.4, str.length * el.fs * 0.62 + el.padX * 2),
+    h: el.fs + el.padY * 2,
+  };
+}
+
+function drawEdgeLabel(g, mk, mtxt, mx, my, str, lineName) {
+  const el = SPEC.edgeLabel;
+  const { w, h } = edgeLabelRect(str);
+  const strokeColor = (VIS.palette[lineName] || VIS.palette.system).stroke;
+  drawPill(g, mk, mtxt, mx, my, w, h, {
+    fill: el.bg, stroke: strokeColor, strokeW: '1', text: str,
+    fs: el.fs, textFill: el.fill, fw: el.fw, opacity: '0.82',
+  });
+}
+
+/** 路径说明 tip 热区：虚线圈暗示 + 白底「i」徽章 + 扩大点击区 */
+function drawEdgeHintBadge(g, mk, mx, my, lineName, colorOverride) {
+  const color = colorOverride || (VIS.palette[lineName] || VIS.palette.system).stroke;
+  const sz = 14;
+  const half = sz / 2;
+  const rx = GRID.radius('pill');
+  g.appendChild(mk('rect', {
+    class: 'hint-ring',
+    x: String(mx - half - 5), y: String(my - half - 5),
+    width: String(sz + 10), height: String(sz + 10),
+    rx: String(rx + 2), fill: 'none', stroke: color,
+    'stroke-width': '1', 'stroke-dasharray': '2.5 2',
+  }));
+  g.appendChild(mk('rect', {
+    class: 'hint-badge',
+    x: String(mx - half), y: String(my - half), width: String(sz), height: String(sz),
+    rx: String(rx), fill: '#ffffff', stroke: color, 'stroke-width': '1.2',
+  }));
+  const txt = mk('text', {
+    class: 'hint-badge',
+    x: String(mx), y: String(my + 0.5),
+    'text-anchor': 'middle', 'dominant-baseline': 'middle',
+    'font-family': '"DM Sans", sans-serif',
+    'font-size': '9', 'font-weight': '700', fill: color,
+  });
+  txt.textContent = 'i';
+  g.appendChild(txt);
+  g.appendChild(mk('rect', {
+    class: 'hint-hit',
+    x: String(mx - 18), y: String(my - 14),
+    width: '36', height: '28', fill: 'transparent',
+  }));
+}
+
+function edgeCurveControls(x1, y1, x2, y2, mode) {
+  const dx = x2 - x1, dy = y2 - y1;
+  if (mode === 'arc') {
+    const bulge = Math.max(12, Math.abs(dx) * 0.1 + Math.abs(dy) * 0.08);
+    const qx = (x1 + x2) / 2;
+    const qy = (y1 + y2) / 2 - bulge;
+    return { type: 'q', qx, qy, x2, y2 };
+  }
+  let c1x, c1y, c2x, c2y;
+  if (mode === 'fork-down') {
+    const drop = Math.max(18, Math.abs(dy) * 0.38);
+    const reach = Math.max(24, Math.abs(dx) * 0.28);
+    c1x = x1; c1y = y1 + drop;
+    c2x = x2 - reach; c2y = y2;
+  } else if (mode === 'fork-up') {
+    const rise = Math.max(18, Math.abs(dy) * 0.38);
+    const reach = Math.max(24, Math.abs(dx) * 0.28);
+    c1x = x1; c1y = y1 - rise;
+    c2x = x2 - reach; c2y = y2;
+  } else if (mode === 'sweep') {
+    c1x = x1 + Math.max(20, dx * 0.35); c1y = y1;
+    c2x = x2; c2y = y1 + dy * 0.55;
+  } else if (mode === 'merge') {
+    c1x = x1 + Math.max(28, dx * 0.5); c1y = y1;
+    c2x = x2; c2y = y2 - Math.abs(dy) * 0.42;
+  } else if (mode === 'split') {
+    const sway = Math.min(10, Math.abs(dy) * 0.12);
+    c1x = x1 + dx * 0.4; c1y = y1 + (dy >= 0 ? sway : -sway);
+    c2x = x1 + dx * 0.62; c2y = y2 - (dy >= 0 ? sway : -sway);
+  } else if (mode === 'vtab') {
+    c1x = x1; c1y = y1 + dy * 0.42;
+    c2x = x2; c2y = y2 - dy * 0.22;
+  } else if (mode === 'horiz' || Math.abs(dy) < 6) {
+    const sway = Math.min(6, Math.abs(dy) * 0.15);
+    c1x = x1 + dx * 0.4; c1y = y1 + sway;
+    c2x = x1 + dx * 0.6; c2y = y2 - sway;
+  } else {
+    c1x = x1 + dx * 0.42; c1y = y1;
+    c2x = x1 + dx * 0.58; c2y = y2;
+  }
+  return { type: 'c', c1x, c1y, c2x, c2y, x2, y2 };
+}
+
+function edgeCurvePoint(x1, y1, x2, y2, mode, t = 0.5) {
+  const c = edgeCurveControls(x1, y1, x2, y2, mode);
+  const u = 1 - t;
+  if (c.type === 'q') {
+    return {
+      x: u * u * x1 + 2 * u * t * c.qx + t * t * c.x2,
+      y: u * u * y1 + 2 * u * t * c.qy + t * t * c.y2,
+    };
+  }
+  return {
+    x: u * u * u * x1 + 3 * u * u * t * c.c1x + 3 * u * t * t * c.c2x + t * t * t * c.x2,
+    y: u * u * u * y1 + 3 * u * u * t * c.c1y + 3 * u * t * t * c.c2y + t * t * t * c.y2,
+  };
+}
+
+function resolveEdgeGeom(e, a, b, portMap, idx) {
+  const { outSide, inSide, mode, dash } = pickEdgeSides(a, b, e.route);
+  const outF = portMap.outFrac[idx] ?? 0.5;
+  const inF = portMap.inFrac[idx] ?? 0.5;
+  const pOut = portOnSide(a, outSide, outF);
+  const pIn = portOnSide(b, inSide, inF);
+  return { x1: pOut.x, y1: pOut.y, x2: pIn.x, y2: pIn.y, mode, dash };
+}
+
+/** 表头几何：阶段跨度、列组跨度 */
+function headerSpans(cols) {
+  const list = cols.map(id => L.cols[id]).filter(Boolean);
+  if (!list.length) return null;
+  return { x1: list[0].x1, x2: list[list.length - 1].x2, cx: (list[0].x1 + list[list.length - 1].x2) / 2 };
+}
+
+/** 双层表头：左泳道栏 + 阶段顶条/标题 + 列组标签 */
+function drawHeaders(mk, mtxt, add) {
+  const phaseH = CFG.headerPhaseH;
+  const colH = CFG.headerColH;
+  const headerH = CFG.headerH;
+  const colY = phaseH;
+  const H = VIS.header;
+
+  add(mk('rect', { x: 0, y: 0, width: L.innerW, height: headerH, fill: H.bg }));
+  add(mk('line', { x1: L.GX, y1: 0, x2: L.GX, y2: headerH, stroke: H.divider, 'stroke-width': '1' }));
+  add(mtxt(L.GX / 2, phaseH * 0.42, '泳道', {
+    'font-size': '12', 'font-weight': '600', fill: H.title,
+  }));
+  add(mtxt(L.GX / 2, phaseH + colH * 0.52, `${LANES.length} 条路径`, {
+    'font-size': '10', fill: H.sub,
+  }));
+
+  const phaseBounds = new Set();
+  PHASE_HEADERS.forEach((ph, idx) => {
+    if (idx > 0) phaseBounds.add(ph.cols[0]);
+    const span = headerSpans(ph.cols);
+    if (!span) return;
+    const accent = VIS.palette[ph.accent || 'system'] || VIS.palette.system;
+
+    add(mk('rect', {
+      x: span.x1, y: 0, width: span.x2 - span.x1, height: 3,
+      fill: accent.stroke, opacity: '0.82',
+    }));
+
+    const titleY = ph.sub ? phaseH * 0.38 : phaseH * 0.52;
+    add(mtxt(span.cx, titleY, ph.label, {
+      'font-size': '12', 'font-weight': '600', fill: H.title,
+    }));
+    if (ph.sub) {
+      add(mtxt(span.cx, phaseH * 0.78, ph.sub, {
+        'font-size': '10', fill: H.sub,
+      }));
+    }
+
+    if (ph.groups) {
+      ph.groups.forEach(g => {
+        const gspan = headerSpans(g.cols);
+        if (!gspan) return;
+        add(mtxt(gspan.cx, colY + colH * 0.54, g.label, {
+          'font-size': '10', 'font-weight': '500', fill: H.sub,
+        }));
+      });
+    } else if (ph.cols.length === 1) {
+      add(mtxt(span.cx, colY + colH * 0.54, ph.sub || ph.label, {
+        'font-size': '10', 'font-weight': '500', fill: H.sub,
+      }));
+    }
+  });
+
+  add(mk('line', { x1: L.GX, y1: colY, x2: L.innerW, y2: colY, stroke: H.divider, 'stroke-width': '0.5' }));
+  add(mk('line', { x1: 0, y1: headerH, x2: L.innerW, y2: headerH, stroke: H.divider, 'stroke-width': '1' }));
+
+  phaseBounds.forEach(x => {
+    add(mk('line', { x1: x, y1: 0, x2: x, y2: headerH, stroke: H.divider, 'stroke-width': '1' }));
+  });
+
+  return phaseBounds;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ③ 渲染
+═══════════════════════════════════════════════════════════ */
+function render() {
+  layout();
+  const svg = document.getElementById('svg');
+  svg.setAttribute('width', L.W);
+  svg.setAttribute('height', L.H);
+  svg.setAttribute('viewBox', `0 0 ${L.W} ${L.H}`);
+  svg.innerHTML = '';
+
+  const ns = 'http://www.w3.org/2000/svg';
+  const mk = (tag, a = {}) => { const e = document.createElementNS(ns, tag); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); return e; };
+  const mtxt = (x, y, s, a = {}) => { const t = mk('text', { x, y, 'text-anchor': 'middle', 'dominant-baseline': 'middle', 'font-family': '"DM Sans", -apple-system, sans-serif', ...a }); t.textContent = s; return t; };
+
+  const defs = mk('defs');
+  let edgeGradSeq = 0;
+  svg.appendChild(defs);
+  const gRoot = mk('g', { transform: `translate(${L.pad},${L.pad})` });
+  svg.appendChild(gRoot);
+  const add = el => gRoot.appendChild(el);
+
+  /** 右上角圆角斜切 ribbon 脚注（clipPath 跟随节点圆角） */
+  const drawNoteTag = (g, s, st, note) => {
+    const sz = SPEC.noteBadge.sz;
+    const rx = GRID.radius('block');
+    const fill  = st.em ? 'rgba(255,255,255,0.92)' : st.stroke;
+    const tFill = st.em ? st.stroke : '#ffffff';
+
+    // clipPath：与节点完全重合的圆角矩形，让三角形在圆角处自然收边
+    const clipId = `nc-${s.id}`;
+    const cp = mk('clipPath', { id: clipId });
+    cp.appendChild(mk('rect', { x: s.lx, y: s.ty, width: s.w, height: s.h, rx }));
+    defs.appendChild(cp);
+
+    const tag = mk('g', {
+      class: 'edge-hint note-ribbon',
+      'data-edge-tip': note.text,
+    });
+    tag.appendChild(mk('path', {
+      d: `M ${s.rx - sz},${s.ty} L ${s.rx},${s.ty} L ${s.rx},${s.ty + sz} Z`,
+      fill,
+      opacity: '0.65',
+      'clip-path': `url(#${clipId})`,
+    }));
+    tag.appendChild(mtxt(s.rx - sz * 0.32, s.ty + sz * 0.34, String(note.id), {
+      'font-size': String(Math.round(sz * 0.45)),
+      'font-weight': '700',
+      fill: tFill,
+      opacity: '0.65',
+    }));
+    g.appendChild(tag);
+  };
+
+  const drawEmoji = (g, emoji, cx, cy, size = 14) => {
+    if (!emoji) return;
+    const half = size / 2;
+    const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+    fo.setAttribute('x', String(cx - half));
+    fo.setAttribute('y', String(cy - half));
+    fo.setAttribute('width', String(size));
+    fo.setAttribute('height', String(size));
+    const div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+    div.setAttribute('class', 'flow-icon');
+    div.setAttribute('style', `font-size:${Math.round(size * 0.88)}px`);
+    div.textContent = emoji;
+    fo.appendChild(div);
+    g.appendChild(fo);
+  };
+
+  const drawIcon = (g, key, cx, cy, _color, size = 16) => {
+    const emoji = ICONS[key];
+    if (!emoji) return;
+    const half = size / 2;
+    const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+    fo.setAttribute('x', String(cx - half));
+    fo.setAttribute('y', String(cy - half));
+    fo.setAttribute('width', String(size));
+    fo.setAttribute('height', String(size));
+    const div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+    div.setAttribute('class', 'flow-icon');
+    div.setAttribute('style', `font-size:${Math.round(size * 0.88)}px`);
+    div.textContent = emoji;
+    fo.appendChild(div);
+    g.appendChild(fo);
+  };
+
+  add(mk('rect', {
+    x: 0, y: 0, width: L.innerW, height: L.innerH,
+    fill: VIS.canvas.sheet, rx: GRID.radius('sheet'),
+  }));
+
+  const gLanes = mk('g', { id: 'lane-bg' });
+  L.laneList.forEach((ln, i) => {
+    if (i > 0) {
+      gLanes.appendChild(mk('line', {
+        x1: 0, y1: ln.y1, x2: L.innerW, y2: ln.y1,
+        stroke: VIS.grid.laneLine, 'stroke-width': '1',
+      }));
+    }
+    gLanes.appendChild(mk('rect', {
+      class: 'lane-normal', 'data-lane': ln.id,
+      x: L.GX, y: ln.y1, width: L.innerW - L.GX, height: ln.y2 - ln.y1,
+      fill: ln.fill, opacity: ln.opacity,
+    }));
+  });
+  add(gLanes);
+
+  const gRegions = mk('g', { id: 'regions' });
+  SPEC.regions.forEach(reg => {
+    // Support fromLane/toLane (multi-lane) or legacy single lane
+    const laneFrom = L.lanes[reg.fromLane || reg.lane];
+    const laneTo   = L.lanes[reg.toLane   || reg.lane];
+    const span = reg.cols.map(id => L.cols[id]).filter(Boolean);
+    if (!laneFrom || !laneTo || !span.length) return;
+
+    const accentPal = VIS.palette[reg.accent] || VIS.palette.system;
+    const color = accentPal.stroke;
+    const fillTint = accentPal.fill;
+
+    const pad = 8;
+    const x1 = span[0].x1 + CFG.cellPad - pad;
+    const x2 = span[span.length - 1].x2 - CFG.cellPad + pad;
+    const y1 = laneFrom.y1 + 3;
+    const y2 = laneTo.y2 - 3;
+    const rr = GRID.radius('sheet');
+
+    // Tinted fill
+    gRegions.appendChild(mk('rect', {
+      x: x1, y: y1, width: x2 - x1, height: y2 - y1,
+      rx: rr, fill: fillTint, opacity: '0.12',
+    }));
+    // Dashed border
+    gRegions.appendChild(mk('rect', {
+      x: x1, y: y1, width: x2 - x1, height: y2 - y1,
+      rx: rr, fill: 'none', stroke: color,
+      'stroke-width': '1.5', 'stroke-dasharray': '6 4', opacity: '0.35',
+    }));
+    // Label pill centered on top edge
+    const rcx = (x1 + x2) / 2;
+    const rcy = y1;
+    const rw  = reg.label.length * 6.5 + 16;
+    drawPill(gRegions, mk, mtxt, rcx, rcy, rw, 15, {
+      fill: '#ffffff', stroke: color, strokeW: '1',
+      text: reg.label, fs: 9, textFill: color, fw: '600',
+    });
+  });
+  add(gRegions);
+
+  const phaseBounds = drawHeaders(mk, mtxt, add);
+
+  // 列网格：仅阶段分界竖线
+  phaseBounds.forEach(x => {
+    add(mk('line', {
+      x1: x, y1: CFG.headerH, x2: x, y2: L.gridBottom,
+      stroke: VIS.grid.phaseMajor, 'stroke-width': '1',
+    }));
+  });
+
+  const drawLaneBadge = (g, ln) => {
+    const p = VIS.palette[ln.line] || VIS.palette.system;
+    const b = ln.badge;
+    const scale = b.scale || GRID.typeScale(b.tier);
+
+    // 徽章撑满泳道全高（含 cellPad 内缩）
+    const fy = ln.y1 + CFG.cellPad;
+    const fh = ln.y2 - ln.y1 - CFG.cellPad * 2;
+    g.appendChild(mk('rect', {
+      x: b.lx, y: fy, width: b.w, height: fh,
+      rx: GRID.radius('block'),
+      fill: p.stroke, stroke: 'none',
+    }));
+
+    const iconSz = CFG.laneIconSz;
+    const lineStep = scale.label + CFG.lineGap;
+    const tagH = b.tagLines.length * lineStep - CFG.lineGap;
+    const subH = ln.hint ? CFG.labelSubGap + scale.sub : 0;
+    const stackH = iconSz + CFG.laneIconGap + tagH + subH;
+    const stackTop = b.cy - stackH / 2;
+
+    drawIcon(g, ln.icon, b.cx, stackTop + iconSz / 2, '#fff', iconSz);
+
+    let y = stackTop + iconSz + CFG.laneIconGap;
+    b.tagLines.forEach((line, i) => {
+      g.appendChild(mtxt(b.cx, y + scale.label * 0.45, line, {
+        'font-size': scale.label, 'font-weight': '600', fill: '#ffffff',
+      }));
+      y += lineStep;
+    });
+    if (ln.hint) {
+      g.appendChild(mtxt(b.cx, y + scale.sub * 0.45, ln.hint, {
+        'font-size': scale.sub, fill: 'rgba(255,255,255,0.75)',
+      }));
+    }
+  };
+
+  const gSceneCol = mk('g', { id: 'scene-col' });
+  add(mk('line', {
+    x1: L.GX, y1: CFG.headerH, x2: L.GX, y2: L.innerH,
+    stroke: VIS.grid.phaseMajor, 'stroke-width': '1',
+  }));
+  L.laneList.forEach(ln => drawLaneBadge(gSceneCol, ln));
+  add(gSceneCol);
+
+  // 连线：沿路径渐变（淡→浓）+ 终点圆点，无三角箭头
+  const gConn = mk('g');
+
+  const edgePathD = (x1, y1, x2, y2, mode) => {
+    const c = edgeCurveControls(x1, y1, x2, y2, mode);
+    if (c.type === 'q') return `M ${x1},${y1} Q ${c.qx},${c.qy} ${c.x2},${c.y2}`;
+    return `M ${x1},${y1} C ${c.c1x},${c.c1y} ${c.c2x},${c.c2y} ${c.x2},${c.y2}`;
+  };
+
+  const flowEdge = (x1, y1, x2, y2, ln, dash, mode, opts = {}) => {
+    const s = LINE[ln];
+    const color = s.stroke;
+    const faint = opts.faint;
+    const stops = faint ? VIS.edge.gradFaint : VIS.edge.grad;
+    const gradId = `edge-grad-${edgeGradSeq++}`;
+    const lg = mk('linearGradient', {
+      id: gradId, gradientUnits: 'userSpaceOnUse',
+      x1: String(x1), y1: String(y1), x2: String(x2), y2: String(y2),
+    });
+    lg.appendChild(mk('stop', { offset: '0%', 'stop-color': color, 'stop-opacity': String(stops.start) }));
+    lg.appendChild(mk('stop', { offset: '68%', 'stop-color': color, 'stop-opacity': String(stops.mid) }));
+    lg.appendChild(mk('stop', { offset: '100%', 'stop-color': color, 'stop-opacity': String(stops.end) }));
+    defs.appendChild(lg);
+
+    const d = edgePathD(x1, y1, x2, y2, mode);
+    const w = s.w;
+    const g = mk('g');
+
+    const main = mk('path', {
+      d, stroke: `url(#${gradId})`, 'stroke-width': String(w),
+      fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+    });
+    if (dash) {
+      main.setAttribute('stroke-dasharray', dash);
+      main.setAttribute('opacity', faint ? String(SPEC.crossLaneOpacity) : String(VIS.edge.opacityAux));
+    }
+    g.appendChild(main);
+
+
+
+    gConn.appendChild(g);
+  };
+
+  const curve = (x1, y1, x2, y2, ln, dash, mode, faint = false) => {
+    flowEdge(x1, y1, x2, y2, ln, dash, mode, { faint });
+  };
+  const edgeLabels = [];
+  const portMap = buildEdgePortMap();
+
+  EDGES.forEach((e, idx) => {
+    const a = N(e.from), b = N(e.to);
+    const ln = e.line;
+    const geom = resolveEdgeGeom(e, a, b, portMap, idx);
+    const { x1, y1, x2, y2, mode, dash } = geom;
+    const faint = edgeShouldFaint(e, a, b);
+
+    curve(x1, y1, x2, y2, ln, dash, mode, faint);
+
+    if (e.label) {
+      const mid = edgeCurvePoint(x1, y1, x2, y2, mode, e.labelT ?? 0.5);
+      let ox = 0, oy = 0;
+      if (e.route === 'tab' && a.col.id === b.col.id) ox = 8;
+      else if (Math.abs(x2 - x1) >= Math.abs(y2 - y1)) oy = -12;
+      else ox = 10;
+      edgeLabels.push({
+        mx: mid.x + ox, my: mid.y + oy, str: e.label,
+        from: e.from, to: e.to, ln: e.line,
+        d: edgePathD(x1, y1, x2, y2, mode),
+      });
+    }
+  });
+  add(gConn);
+
+  // 节点：按 GRID 规范撑满格子 / 竖向分割 / 字号适应
+  const gNodes = mk('g');
+
+  const drawLabelLines = (g, s, lines, y0, scale, fw, st, lineStep) => {
+    lines.forEach((line, i) => {
+      g.appendChild(mtxt(s.cx, y0 + i * lineStep, line, {
+        'font-size': scale.label, 'font-weight': fw, fill: st.tc,
+      }));
+    });
+  };
+
+  const drawNodeText = (g, s, st) => {
+    const scale = GRID.typeScale(s.tier);
+    const spec = SPEC.kinds[s.kind] || SPEC.kinds.system;
+    const fw = spec.labelFw || st.fw;
+
+    const max = GRID.maxLabelChars(s.w, scale.label);
+    const labelLines = GRID.wrapLines(s.label, max);
+    const lineStep = scale.label + CFG.lineGap;
+    const labelBlockH = labelLines.length * lineStep - CFG.lineGap;
+
+    // sub 折行（与 measureContentH 保持一致）
+    const subLineStep = scale.sub + CFG.lineGap;
+    const subLines = s.sub ? GRID.wrapLines(s.sub, GRID.maxLabelChars(s.w, scale.sub)) : [];
+    const subBlockH = subLines.length > 0 ? subLines.length * subLineStep - CFG.lineGap : 0;
+    const subH = subLines.length > 0 ? CFG.labelSubGap + subBlockH : 0;
+
+    let headH = 0;
+    let headGap = 0;
+    let headKind = null;
+    if (s.entryIcon) {
+      headH = CFG.entryIconSz;
+      headGap = CFG.entryIconGap;
+      headKind = 'entry';
+    } else if (s.tag) {
+      headH = scale.tag;
+      headGap = CFG.markerGap;
+      headKind = 'tag';
+    } else if (s.kind === 'decision' && spec.marker) {
+      headH = CFG.markerSz;
+      headGap = CFG.markerGap;
+      headKind = 'marker';
+    }
+
+    if (s.kind === 'end' && s.dest) {
+      const destPal = s.destType === 'stay' ? VIS.palette.view : VIS.palette.record;
+      const stackH = labelBlockH + CFG.labelSubGap + scale.sub;
+      let y = s.cy - stackH / 2;
+      drawLabelLines(g, s, labelLines, y + scale.label * 0.45, scale, fw, st, lineStep);
+      y += labelBlockH + CFG.labelSubGap;
+      g.appendChild(mtxt(s.cx, y + scale.sub * 0.45, s.dest, {
+        'font-size': scale.sub, 'font-weight': '600', fill: destPal.stroke, opacity: '0.88',
+      }));
+      return;
+    }
+
+    const stackH = headH + (headKind ? headGap : 0) + labelBlockH + subH;
+    let y = s.cy - stackH / 2;
+
+    if (headKind === 'entry') {
+      drawIcon(g, s.entryIcon, s.cx, y + headH / 2, st.em ? '#f5f5f7' : st.stroke, headH);
+      y += headH + headGap;
+    } else if (headKind === 'tag') {
+      g.appendChild(mtxt(s.cx, y + headH * 0.45, s.tag, {
+        'font-size': scale.tag,
+        fill: st.em ? (st.subTc || st.tc) : st.stroke,
+        opacity: st.em ? '0.85' : '0.62',
+      }));
+      y += headH + headGap;
+    } else if (headKind === 'marker') {
+      drawEmoji(g, spec.marker, s.cx, y + headH / 2, headH);
+      y += headH + headGap;
+    }
+
+    drawLabelLines(g, s, labelLines, y + scale.label * 0.45, scale, fw, st, lineStep);
+    y += labelBlockH;
+
+    if (subLines.length > 0) {
+      y += CFG.labelSubGap;
+      subLines.forEach((line, i) => {
+        g.appendChild(mtxt(s.cx, y + scale.sub * 0.45 + i * subLineStep, line, {
+          'font-size': scale.sub, fill: st.subTc || st.tc, opacity: st.subTc ? '1' : '0.72',
+        }));
+      });
+    }
+  };
+
+  Object.values(L.nodes).forEach(s => {
+    const st = resolveNodeStyle(s);
+    const sw = st.sw ?? VIS.node.sw;
+
+    if (s.cellSplit && s.slot > 0) {
+      const divY = s.ty - CFG.cellSplitGap / 2;
+      gNodes.appendChild(mk('line', {
+        x1: s.lx + 4, y1: divY, x2: s.rx - 4, y2: divY,
+        stroke: VIS.grid.phaseMajor, 'stroke-width': '0.6', 'stroke-dasharray': VIS.edge.tabDash, opacity: '0.4',
+      }));
+    }
+
+    if (s.diamond) {
+      const dg = GRID.diamondGeom(s.cx, s.cy, s.w, s.h);
+      const rot = mk('g', {
+        transform: `translate(${dg.cx},${dg.cy}) rotate(45) translate(${-dg.inner / 2},${-dg.inner / 2})`,
+      });
+      const diamond = mk('rect', {
+        x: 0, y: 0, width: dg.inner, height: dg.inner, rx: dg.rx,
+        fill: st.fill, stroke: st.stroke, 'stroke-width': sw,
+      });
+      if (!st.em) diamond.setAttribute('stroke-dasharray', VIS.edge.dash);
+      if (SPEC.mergeNodes.includes(s.id) && !st.em) {
+        diamond.setAttribute('stroke-width', String(VIS.node.swBold));
+      }
+      rot.appendChild(diamond);
+      gNodes.appendChild(rot);
+    } else {
+      const shape = mk('rect', {
+        x: s.lx, y: s.ty, width: s.w, height: s.h,
+        rx: GRID.radius('block'),
+        fill: st.fill, stroke: st.stroke, 'stroke-width': sw,
+      });
+      if (st.dash && !st.em) shape.setAttribute('stroke-dasharray', st.dash);
+      if (SPEC.mergeNodes.includes(s.id) && !st.em) {
+        shape.setAttribute('stroke-width', String(VIS.node.swBold));
+      }
+      gNodes.appendChild(shape);
+    }
+    drawNodeText(gNodes, s, st);
+    const note = NOTES.find(n => n.anchor === s.id);
+    if (note) drawNoteTag(gNodes, s, st, note);
+  });
+  add(gNodes);
+
+  const gEdgeLbl = mk('g', { id: 'edge-labels' });
+  edgeLabels.forEach(item => {
+    const g = mk('g', { class: 'edge-hint', 'data-edge-tip': item.str });
+    if (item.d) {
+      g.appendChild(mk('path', {
+        d: item.d, stroke: 'transparent', 'stroke-width': '16', fill: 'none',
+        'stroke-linecap': 'round', style: 'pointer-events:stroke',
+      }));
+    }
+    drawEdgeHintBadge(g, mk, item.mx, item.my, item.ln);
+    gEdgeLbl.appendChild(g);
+  });
+  add(gEdgeLbl);
+  bindEdgeTips(svg);
+}
+
+function bindEdgeTips(root) {
+  const tip = document.getElementById('edge-tip');
+  if (!tip || !root) return;
+  root.querySelectorAll('.edge-hint').forEach(el => {
+    const text = el.getAttribute('data-edge-tip');
+    const show = ev => {
+      tip.textContent = text;
+      tip.hidden = false;
+      tip.style.left = `${ev.clientX + 12}px`;
+      tip.style.top = `${ev.clientY + 12}px`;
+    };
+    const hide = () => { tip.hidden = true; };
+    el.addEventListener('mouseenter', show);
+    el.addEventListener('mousemove', show);
+    el.addEventListener('mouseleave', hide);
+  });
+}
+
+/* Summary 共用列数（1.0 / 2.0 节点列位对齐；目录以左侧泳道名为准，不做全局阶段表头） */
+const SUMMARY_COLS = 8;
+
+/* ── Summary 1.0 / 2.0 数据（仅概览条；下方完整流程图始终为 1.0） ── */
+const SUMMARY_V1 = {
+  version: '1.0',
+  desc: '从多个入口录制、汇入与查看共享时刻记录',
+  colsFit: true,
+  nodes: [
+    { id:'sB',  col:0, row:0, label:'推送通知',  pal:'invite' },
+    { id:'nS',  col:1, row:0, label:'打开通知',  pal:'system' },
+    { id:'sA',  col:0, row:1, label:'主动启动',  pal:'record' },
+    { id:'home',col:1, row:1, label:'应用主页',  pal:'system', em:true },
+    { id:'mP',  col:2, row:1, label:'功能主页',  pal:'system', em:true },
+    { id:'cam', col:3, row:1, label:'拍摄界面',  pal:'record', em:true },
+    { id:'sTo', col:4, row:1, label:'Send To',   pal:'record' },
+    { id:'e1',  col:6, row:1, label:'发送完成',  end:true },
+    { id:'cB',  col:1, row:2, label:'聊天页',    pal:'system' },
+    { id:'rI',  col:2, row:2, label:'邀请消息',  pal:'invite' },
+    { id:'aC',  col:1, row:3, label:'点击光圈',  pal:'view' },
+    { id:'mM',  col:2, row:4, label:'My Moment', pal:'view' },
+    { id:'e3',  col:6, row:4, label:'浏览结束',  end:true },
+    { id:'lL',  col:2, row:5, label:'Log List',  pal:'view' },
+    { id:'ld',  col:4, row:5, label:'Log详情',  pal:'view',   em:true },
+    { id:'eA',  col:5, row:5, label:'导出',      pal:'export' },
+    { id:'e4',  col:6, row:5, label:'导出完成',  end:true },
+  ],
+  edges: [
+    { f:'sB',  t:'nS' },
+    { f:'nS',  t:'mP' },
+    { f:'sA',  t:'home' },
+    { f:'home',t:'mP' },
+    { f:'home',t:'aC', fork:'left', label:'头像光圈' },
+    { f:'home',t:'cB', v:true, label:'消息预览' },
+    { f:'mP',  t:'cam' },
+    { f:'mP',  t:'mM', v:true },
+    { f:'mP',  t:'lL', v:true },
+    { f:'cam', t:'sTo' },
+    { f:'sTo', t:'e1' },
+    { f:'cB',  t:'rI' },
+    { f:'rI',  t:'cam', label:'参与录制' },
+    { f:'aC',  t:'ld',  label:'汇入' },
+    { f:'mM',  t:'e3' },
+    { f:'lL',  t:'ld' },
+    { f:'lL',  t:'cam', label:'接受邀请' },
+    { f:'ld',  t:'eA' },
+    { f:'eA',  t:'e4' },
+  ],
+};
+
+const SUMMARY_V2 = {
+  version: '2.0',
+  desc: '2.0 · Log主页合并 · 受限→解锁 · 日度/月度合集 · 自我记录 · TikTok · 点赞评论',
+  colsFit: true,
+  lanes: [
+    // 推送响应：差异化路由（含日度/月度合集推送）
+    { tag: '推送响应',    line: 'system' },
+    { tag: '　→ 拍摄',   line: 'record', v2: 'new',  branch: true },
+    { tag: '　→ Log',    line: 'view',   v2: 'new',  branch: true },
+    { tag: '　→ 日度预览',line: 'export', v2: 'new',  branch: true },
+    { tag: '　→ 月度·日历',line: 'view',  v2: 'new',  branch: true },
+    { tag: '　→ 月度·个人',line:'view',  v2: 'new',  branch: true },
+    // 主动录制
+    { tag: '录制共享',    line: 'record' },
+    { tag: '　→ 经导航栏',line: 'system', v2: 'new',  branch: true },
+    // 聊天响应（含群聊提醒/合集卡片子分支）
+    { tag: '聊天响应',    line: 'invite' },
+    { tag: '　→ 群聊提醒',line: 'invite', v2: 'new',  branch: true },
+    { tag: '　→ 合集卡片',line: 'export', v2: 'new',  branch: true },
+    // 查看类
+    { tag: '光圈查看',    line: 'view' },
+    { tag: 'My Moment',  line: 'view' },
+    { tag: '列表与导出',  line: 'export' },
+    { tag: '　TikTok',   line: 'export', v2: 'new',  branch: true },
+    // 互动功能
+    { tag: 'Log互动',    line: 'view',   v2: 'new' },
+    { tag: '　→ 点赞',   line: 'view',   v2: 'new',  branch: true },
+    { tag: '　→ 评论',   line: 'view',   v2: 'new',  branch: true },
+  ],
+  nodes: [
+    // 0 推送响应
+    { id:'sB',    col:0, row:0,  label:'推送通知',  pal:'invite', v2:'legacy' },
+    { id:'nS',    col:1, row:0,  label:'打开通知',  pal:'system', v2:'changed' },
+    { id:'pushBr',col:2, row:0,  label:'通知判断',  pal:'system', v2:'new' },
+    // 1 → 拍摄
+    { id:'pushB1',col:2, row:1,  label:'来拍摄',    pal:'record', v2:'new',  br:true },
+    { id:'pCam',  col:5, row:1,  label:'拍摄界面',  pal:'record', em:true,   v2:'new' },
+    // 2 → Log详情
+    { id:'pushB2',col:2, row:2,  label:'好友已发',  pal:'view',   v2:'new',  br:true },
+    { id:'pLd',   col:7, row:2,  label:'Log详情',   pal:'view',   em:true,   v2:'new' },
+    // 3 → 日度合集预览
+    { id:'pushB3',col:2, row:3,  label:'日度已生成', pal:'export', v2:'new', br:true },
+    { id:'pExp',  col:8, row:3,  label:'导出预览',   pal:'export', em:true,   v2:'new' },
+    // 4 → 月度·Log详情
+    { id:'pushB4',col:2, row:4,  label:'月度已生成', pal:'view',   v2:'new',  br:true },
+    { id:'monLd', col:3, row:4,  label:'月度日历',   pal:'system', em:true,   v2:'new' },
+    // 5 → 月度·个人合集
+    { id:'pushB5',col:2, row:5,  label:'月度·个人',  pal:'view',   v2:'new',  br:true },
+    { id:'monV',  col:7, row:5,  label:'我的Vlog',  pal:'view',   v2:'new' },
+    // 6 录制共享（col:0 起，主行：直启Log主页）
+    { id:'sA',    col:0, row:6,  label:'主动启动',  pal:'record', v2:'legacy' },
+    { id:'mP',    col:1, row:6,  label:'Log主页',   pal:'system', em:true,   v2:'changed' },
+    { id:'cam',   col:5, row:6,  label:'拍摄界面',  pal:'record', em:true,   v2:'legacy' },
+    { id:'sTo',   col:6, row:6,  label:'Send To',   pal:'record', v2:'changed' },
+    { id:'ldF',   col:7, row:6,  label:'Log详情',   pal:'view',   em:true,   v2:'new' },
+    // 7 → 经导航栏（其他页面 via nav bar 到Log主页）
+    { id:'home',  col:0, row:7,  label:'应用主页',  pal:'system', v2:'legacy', br:true },
+    { id:'mPnav', col:1, row:7,  label:'Log主页',   pal:'system', em:true,    v2:'changed' },
+    // 8 聊天响应（App内·聊天页，col:1 起）
+    { id:'cB',    col:1, row:8,  label:'聊天页',    pal:'system', v2:'legacy' },
+    { id:'rI',    col:2, row:8,  label:'邀请卡片',  pal:'invite', v2:'legacy' },
+    { id:'ldL',   col:3, row:8,  label:'受限详情',  pal:'view',   v2:'new' },
+    { id:'guide', col:4, row:8,  label:'半弹窗',    pal:'view',   v2:'new' },
+    { id:'iCam',  col:5, row:8,  label:'拍摄界面',  pal:'record', em:true,   v2:'new' },
+    { id:'iLdF',  col:7, row:8,  label:'Log详情',   pal:'view',   em:true,   v2:'new' },
+    // 9 → 群聊提醒（聊天响应子分支）
+    { id:'grpP',  col:1, row:9,  label:'群聊提醒',  pal:'invite', v2:'new',  br:true },
+    { id:'gCam',  col:5, row:9,  label:'拍摄界面',  pal:'record', em:true,   v2:'new' },
+    // 10 → 合集卡片（群聊提醒子分支）
+    { id:'grpB2', col:1, row:10, label:'合集卡片',  pal:'invite', v2:'new',  br:true },
+    { id:'dayExp',col:8, row:10, label:'导出预览',  pal:'export', em:true,   v2:'new' },
+    // 11 光圈查看（App内）
+    { id:'aC',    col:1, row:11, label:'点击光圈',  pal:'view',   v2:'legacy' },
+    { id:'aCLd',  col:7, row:11, label:'Log详情',   pal:'view',   em:true,   v2:'legacy' },
+    // 12 My Moment + 自我记录（App内）
+    { id:'mM',    col:1, row:12, label:'My Moment', pal:'view',   v2:'changed' },
+    { id:'selfR', col:2, row:12, label:'自我记录',  pal:'record', v2:'new' },
+    { id:'sCam',  col:5, row:12, label:'拍摄界面',  pal:'record', em:true,   v2:'new' },
+    { id:'sCap',  col:6, row:12, label:'Send To',   pal:'record', v2:'new' },
+    { id:'myV',   col:7, row:12, label:'我的Vlog',  pal:'view',   v2:'new' },
+    // 13 列表与导出（App内）
+    { id:'lL',    col:1, row:13, label:'Log List',  pal:'view',   v2:'legacy' },
+    { id:'ld',    col:7, row:13, label:'Log详情',   pal:'view',   em:true,   v2:'legacy' },
+    { id:'eA',    col:8, row:13, label:'导出',      pal:'export', v2:'legacy' },
+    { id:'e4',    col:10, row:13, label:'导出完成',  end:true,     v2:'legacy' },
+    // 14 TikTok（子行）
+    { id:'eABr',  col:8, row:14, label:'TikTok',    pal:'export', v2:'new',  br:true },
+    { id:'tik',   col:10, row:14, label:'一键分享',  pal:'export', v2:'new' },
+    // 15 Log互动（页内互动入口）
+    { id:'ldH',   col:7, row:15, label:'Log详情',   pal:'view',   em:true,   v2:'new' },
+    { id:'actBr', col:8, row:15, label:'互动',      pal:'view',   v2:'new' },
+    // 16 → 点赞
+    { id:'lkBr',  col:8, row:16, label:'点赞',      pal:'view',   v2:'new',  br:true },
+    { id:'lkD',   col:10, row:16, label:'已点赞',    end:true,     v2:'new' },
+    // 17 → 评论
+    { id:'cmtBr', col:8, row:17, label:'评论',      pal:'view',   v2:'new',  br:true },
+    { id:'cmtBox',col:9, row:17, label:'评论框',    pal:'system', v2:'new' },
+    { id:'cmtD',  col:10, row:17, label:'评论区',    pal:'view',   v2:'new' },
+  ],
+  edges: [
+    { f:'sB',    t:'nS',     v2:'legacy' },
+    { f:'nS',    t:'pushBr', label:'差异化文案', v2:'changed' },
+    { f:'pushBr',t:'pushB1', v:true, v2:'new' },
+    { f:'pushB1',t:'pCam',   v2:'new' },
+    { f:'pushBr',t:'pushB2', v:true, v2:'new' },
+    { f:'pushB2',t:'pLd',    v2:'new' },
+    { f:'pushBr',t:'pushB3', v:true, v2:'new' },
+    { f:'pushB3',t:'pExp',   v2:'new' },
+    { f:'pushBr',t:'pushB4', v:true, v2:'new' },
+    { f:'pushB4',t:'monLd',  v2:'new' },
+    { f:'pushBr',t:'pushB5', v:true, v2:'new' },
+    { f:'pushB5',t:'monV',   v2:'new' },
+    { f:'sA',    t:'mP',    label:'直启', v2:'new' },
+    { f:'sA',    t:'home',  v:true, v2:'new' },
+    { f:'home',  t:'mPnav', label:'nav bar', v2:'new' },
+    { f:'mP',    t:'cam',   v2:'legacy' },
+    { f:'cam',   t:'sTo',    v2:'legacy' },
+    { f:'sTo',   t:'ldF',   label:'仅log关系·完整', v2:'changed' },
+    { f:'cB',    t:'rI',     v2:'legacy' },
+    { f:'rI',    t:'ldL',   label:'接受即建关系', v2:'new' },
+    { f:'ldL',   t:'guide',  v2:'new' },
+    { f:'guide', t:'iCam',  label:'引导拍摄', v2:'new' },
+    { f:'iCam',  t:'iLdF',  label:'发送后解锁', v2:'new' },
+    { f:'cB',    t:'grpP',  v:true, v2:'new' },
+    { f:'grpP',  t:'gCam',  label:'10:00拍摄', v2:'new' },
+    { f:'grpP',  t:'grpB2', v:true, v2:'new' },
+    { f:'grpB2', t:'dayExp',label:'点击直达',  v2:'new' },
+    { f:'aC',    t:'aCLd',  label:'权限视发送历史', v2:'legacy' },
+    { f:'mM',    t:'selfR',  label:'页内入口', v2:'new' },
+    { f:'selfR', t:'sCam',   v2:'new' },
+    { f:'sCam',  t:'sCap',   v2:'new' },
+    { f:'sCap',  t:'myV',   label:'个人存档', v2:'new' },
+    { f:'lL',    t:'ld',    label:'权限视发送历史', v2:'legacy' },
+    { f:'ld',    t:'eA',    v2:'legacy' },
+    { f:'eA',    t:'e4',    v2:'legacy' },
+    { f:'eA',    t:'eABr',  v:true, v2:'new' },
+    { f:'eABr',  t:'tik',   v2:'new' },
+    { f:'ldH',   t:'actBr', v2:'new' },
+    { f:'actBr', t:'lkBr',  v:true, v2:'new' },
+    { f:'lkBr',  t:'lkD',   v2:'new' },
+    { f:'actBr', t:'cmtBr', v:true, v2:'new' },
+    { f:'cmtBr', t:'cmtBox',v2:'new' },
+    { f:'cmtBox',t:'cmtD',  label:'发布', v2:'new' },
+  ],
+};
+
+let summaryVersion = '1.0';
+
+/** 2.0 淡化对照：语义色保留、整体弱化，兼顾可读与主次 */
+const V2_LEGACY = {
+  nodeOp: 0.58,
+  edgeOp: 0.62,
+  edgeGrad: { start: 0.22, mid: 0.38, end: 0.52 },
+  edgeDash: '4 3',
+  hintColor: '#9a9aa0',
+};
+
+/* ── 精简 SVG 流程概览 ── */
+function renderSummarySVG(spec) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const mkS = (tag, a = {}) => {
+    const el = document.createElementNS(ns, tag);
+    for (const [k, v] of Object.entries(a)) el.setAttribute(k, String(v));
+    return el;
+  };
+  const txS = (x, y, s, a = {}) => {
+    const el = mkS('text', { x, y, 'text-anchor': 'middle', 'dominant-baseline': 'middle',
+      'font-family': '"DM Sans",sans-serif', ...a });
+    el.textContent = s;
+    return el;
+  };
+
+  const SN = spec.nodes;
+  const SE = spec.edges;
+  const isV2 = spec.version === '2.0';
+  const C = { nW: 64, nH: 22, colW: 84, rowH: 48, laneW: 86, hdrH: 0, padX: 12, padY: 8, rx: 5 };
+  const maxCol = SN.reduce((m, n) => Math.max(m, n.col), 0);
+  const COLS = spec.colsFit ? maxCol + 1 : (spec.cols || SUMMARY_COLS);
+  const laneList = spec.lanes || LANES;
+  const ROWS = laneList.length;
+  const contentW = C.laneW + (maxCol + 0.5) * C.colW + C.nW / 2;
+  const W = C.padX * 2 + (spec.colsFit ? contentW : C.laneW + COLS * C.colW);
+  const H = C.padY * 2 + C.hdrH + ROWS * C.rowH;
+
+  const cx = col => C.padX + C.laneW + (col + 0.5) * C.colW;
+  const cy = row => C.padY + C.hdrH + (row + 0.5) * C.rowH;
+
+  const svg = mkS('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`,
+    style: 'display:block;overflow:visible' });
+
+  const defs = mkS('defs');
+  let sumGradSeq = 0;
+  svg.appendChild(defs);
+
+  // 列对齐参考线（无全局阶段表头——各泳道步骤含义不同）
+  for (let c = 0; c <= COLS; c++) {
+    const x = C.padX + C.laneW + c * C.colW;
+    svg.appendChild(mkS('line', {
+      x1: x, y1: C.padY, x2: x, y2: H - C.padY,
+      stroke: '#e5e5ea', 'stroke-width': '0.5', opacity: c === 0 ? '0.5' : '0.22',
+    }));
+  }
+
+  // 泳道目录（左侧标签 = 真正的场景目录）
+  const V2_NEW = '#007aff';
+  laneList.forEach((ln, i) => {
+    const pal = VIS.palette[ln.line] || VIS.palette.system;
+    const y = C.padY + C.hdrH + i * C.rowH;
+    const branchLane = isV2 && ln.branch;
+    const newLane = isV2 && ln.v2 === 'new' && !branchLane;
+    const laneOp = branchLane ? '0.1' : (newLane ? '0.28' : '0.2');
+    svg.appendChild(mkS('rect', {
+      x: 0, y, width: W, height: C.rowH, fill: pal.lane, opacity: laneOp,
+    }));
+    if (newLane) {
+      svg.appendChild(mkS('rect', {
+        x: 0, y: y + 5, width: 3, height: C.rowH - 10, rx: 1.5, fill: V2_NEW,
+      }));
+    }
+    if (branchLane) {
+      svg.appendChild(mkS('line', {
+        x1: C.padX + 4, y1: y + 6, x2: C.padX + 4, y2: y + C.rowH - 6,
+        stroke: pal.stroke, 'stroke-width': '1', opacity: '0.22', 'stroke-dasharray': '2 2',
+      }));
+    }
+    if (i > 0) {
+      svg.appendChild(mkS('line', {
+        x1: 0, y1: y, x2: W, y2: y, stroke: pal.stroke, 'stroke-width': '0.5', opacity: '0.18',
+      }));
+    }
+    const dotR = branchLane ? 2.5 : 3.5;
+    svg.appendChild(mkS('circle', {
+      cx: C.padX + 7, cy: y + C.rowH / 2, r: dotR,
+      fill: branchLane ? 'none' : (newLane ? V2_NEW : pal.stroke),
+      stroke: branchLane ? pal.stroke : 'none', 'stroke-width': branchLane ? '1' : '0',
+      opacity: branchLane ? '0.45' : '1',
+    }));
+    const tagX = C.padX + C.laneW / 2 + 6;
+    const tagY = y + C.rowH / 2;
+    if (newLane) {
+      const badgeW = 14;
+      const badgeH = 11;
+      const badgeY = tagY - 9;
+      svg.appendChild(mkS('rect', {
+        x: tagX - badgeW / 2, y: badgeY - badgeH / 2, width: badgeW, height: badgeH, rx: 3,
+        fill: V2_NEW,
+      }));
+      svg.appendChild(txS(tagX, badgeY, '新', {
+        'font-size': '7', 'font-weight': '700', fill: '#ffffff',
+      }));
+      svg.appendChild(txS(tagX, tagY + 8, ln.tag, {
+        'font-size': '9.5', 'font-weight': '600', fill: '#003d99', 'text-anchor': 'middle',
+      }));
+    } else if (branchLane && isV2 && ln.v2 === 'new') {
+      svg.appendChild(mkS('rect', {
+        x: tagX - 6, y: tagY - 15, width: 12, height: 9, rx: 2, fill: V2_NEW, opacity: '0.85',
+      }));
+      svg.appendChild(txS(tagX, tagY - 10.5, '新', {
+        'font-size': '6', 'font-weight': '700', fill: '#ffffff',
+      }));
+      svg.appendChild(txS(tagX, tagY + 5, ln.tag, {
+        'font-size': '9', 'font-weight': '500', fill: '#4488cc', 'text-anchor': 'middle',
+      }));
+    } else {
+      const tagFs = branchLane ? 9 : (ln.tag.length > 7 ? 9.5 : 10.5);
+      svg.appendChild(txS(tagX, tagY, ln.tag, {
+        'font-size': String(tagFs), 'font-weight': branchLane ? '500' : '600',
+        fill: branchLane ? '#8e8e93' : pal.text, 'text-anchor': 'middle',
+      }));
+    }
+  });
+
+  // Vertical lane divider
+  svg.appendChild(mkS('line', { x1: C.padX + C.laneW, y1: C.padY, x2: C.padX + C.laneW, y2: H - C.padY,
+    stroke: '#e5e5ea', 'stroke-width': '1' }));
+
+  // Build node lookup
+  const nm = {};
+  SN.forEach(n => { nm[n.id] = n; });
+
+  const nBot  = n => cy(n.row) + C.nH / 2;
+  const nTop  = n => cy(n.row) - C.nH / 2;
+  const nLeft = n => cx(n.col) - C.nW / 2;
+  const nRight= n => cx(n.col) + C.nW / 2;
+
+  const nodeLineColor = n => {
+    if (n.end) return VIS.special.end.stroke;
+    const p = VIS.palette[n.pal] || VIS.palette.system;
+    return p.line || p.stroke;
+  };
+
+  const mixLineColor = (c1, c2, t) => {
+    const parse = h => {
+      const s = h.replace('#', '');
+      return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)];
+    };
+    const a = parse(c1), b = parse(c2);
+    const ch = i => Math.round(a[i] + (b[i] - a[i]) * t).toString(16).padStart(2, '0');
+    return `#${ch(0)}${ch(1)}${ch(2)}`;
+  };
+
+  const edgeHints = [];
+
+  // Draw edges：轻弯贝塞尔 + 起点→终点语意色 & 淡→浓透明度双渐变，无箭头
+  SE.forEach(e => {
+    const a = nm[e.f], b = nm[e.t];
+    if (!a || !b) return;
+    const dim = isV2 && e.v2 === 'legacy';
+    let colorFrom = nodeLineColor(a);
+    let colorTo   = nodeLineColor(b);
+
+    let x1, y1, x2, y2, d, lx, ly;
+
+    if (e.fork === 'left') {
+      x1 = nLeft(a); y1 = nBot(a);
+      x2 = nLeft(b); y2 = nTop(b);
+      const midX = nLeft(a) - 10;
+      d = `M${x1},${y1} C${midX},${y1} ${midX},${y2} ${x2},${y2}`;
+      lx = midX; ly = (y1 + y2) / 2;
+    } else if (e.v || (a.col === b.col && a.row !== b.row)) {
+      x1 = cx(a.col); y1 = nBot(a);
+      x2 = cx(b.col); y2 = nTop(b);
+      d = `M${x1},${y1} V${y2}`;
+      lx = x1 + 6; ly = (y1 + y2) / 2;
+    } else if (a.row === b.row) {
+      x1 = nRight(a); y1 = cy(a.row);
+      x2 = nLeft(b);  y2 = cy(b.row);
+      d = `M${x1},${y1} H${x2}`;
+      lx = (x1 + x2) / 2; ly = y1;
+    } else if (b.row < a.row) {
+      x1 = nRight(a); y1 = cy(a.row);
+      x2 = nLeft(b);  y2 = nBot(b);
+      const midX = (x1 + x2) / 2;
+      d = `M${x1},${y1} C${midX},${y1} ${midX},${y2} ${x2},${y2}`;
+      lx = midX; ly = (y1 + y2) / 2;
+    } else {
+      x1 = nRight(a); y1 = cy(a.row);
+      x2 = nLeft(b);  y2 = cy(b.row);
+      const midX = (x1 + x2) / 2;
+      d = `M${x1},${y1} C${midX},${y1} ${midX},${y2} ${x2},${y2}`;
+      lx = midX; ly = (y1 + y2) / 2;
+    }
+
+    let gradStops = e.long ? VIS.edge.gradFaint : VIS.edge.grad;
+    if (dim) gradStops = V2_LEGACY.edgeGrad;
+    const gradId = `sum-grad-${sumGradSeq++}`;
+    const lg = mkS('linearGradient', {
+      id: gradId, gradientUnits: 'userSpaceOnUse',
+      x1: String(x1), y1: String(y1), x2: String(x2), y2: String(y2),
+    });
+    lg.appendChild(mkS('stop', {
+      offset: '0%', 'stop-color': colorFrom, 'stop-opacity': String(gradStops.start),
+    }));
+    lg.appendChild(mkS('stop', {
+      offset: '68%', 'stop-color': mixLineColor(colorFrom, colorTo, 0.68),
+      'stop-opacity': String(gradStops.mid),
+    }));
+    lg.appendChild(mkS('stop', {
+      offset: '100%', 'stop-color': colorTo, 'stop-opacity': String(gradStops.end),
+    }));
+    defs.appendChild(lg);
+
+    const pathAttrs = {
+      d, stroke: `url(#${gradId})`, 'stroke-width': String(VIS.edge.wMain),
+      fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round',
+    };
+    if (e.long && !dim) {
+      pathAttrs['stroke-dasharray'] = VIS.edge.dash;
+      pathAttrs.opacity = String(VIS.edge.opacityAux);
+    }
+    if (dim) {
+      pathAttrs['stroke-dasharray'] = V2_LEGACY.edgeDash;
+      pathAttrs.opacity = String(V2_LEGACY.edgeOp);
+    }
+    svg.appendChild(mkS('path', pathAttrs));
+
+    if (e.label) {
+      edgeHints.push({
+        lx, ly, label: e.label, d,
+        color: dim ? V2_LEGACY.hintColor : colorFrom,
+      });
+    }
+  });
+
+  // Draw nodes
+  SN.forEach(n => {
+    const pal = n.pal ? (VIS.palette[n.pal] || VIS.palette.system) : null;
+    const legacy = isV2 && n.v2 === 'legacy';
+    const changed = isV2 && n.v2 === 'changed';
+    const isNew = isV2 && n.v2 === 'new';
+    let fill, stroke, tc, dash = 'none', sw = '1', gOp = '1';
+
+    if (n.end) {
+      fill = VIS.special.end.fill; stroke = VIS.special.end.stroke; tc = VIS.special.end.tc; dash = '4 2';
+      if (legacy) gOp = String(V2_LEGACY.nodeOp);
+    } else if (legacy) {
+      fill = pal.fill; stroke = pal.stroke; tc = pal.text; gOp = String(V2_LEGACY.nodeOp);
+    } else if (n.em) {
+      fill = pal.stroke; stroke = pal.stroke; tc = '#ffffff';
+    } else {
+      fill = pal.fill; stroke = pal.stroke; tc = pal.text;
+    }
+    if (changed && !legacy && pal) sw = '1.5';
+    if (isNew && !legacy && pal) { sw = '1.5'; stroke = pal.stroke; }
+    if (n.br && !n.end) { dash = '3 2'; sw = '1'; }
+
+    const nW = n.br ? C.nW - 6 : C.nW;
+    const nH = n.br ? C.nH - 4 : C.nH;
+    const x = cx(n.col) - nW / 2, y = cy(n.row) - nH / 2;
+    const g = mkS('g', { opacity: gOp });
+    g.appendChild(mkS('rect', { x, y, width: nW, height: nH, rx: C.rx,
+      fill, stroke, 'stroke-width': sw, 'stroke-dasharray': dash }));
+    const fs = n.br ? 8 : (n.label.length > 8 ? 8.5 : 9.5);
+    g.appendChild(txS(cx(n.col), cy(n.row), n.label, {
+      'font-size': String(fs), fill: tc, 'font-weight': (n.em && !legacy) ? '700' : '500' }));
+    svg.appendChild(g);
+  });
+
+  // Tip 热区置于最上层，避免被节点遮挡
+  edgeHints.forEach(h => {
+    const gHint = mkS('g', { class: 'edge-hint', 'data-edge-tip': h.label });
+    gHint.appendChild(mkS('path', {
+      d: h.d, stroke: 'transparent', 'stroke-width': '16', fill: 'none',
+      'stroke-linecap': 'round', style: 'pointer-events:stroke',
+    }));
+    const sz = 14;
+    const half = sz / 2;
+    gHint.appendChild(mkS('rect', {
+      class: 'hint-ring',
+      x: h.lx - half - 5, y: h.ly - half - 5,
+      width: sz + 10, height: sz + 10, rx: 5,
+      fill: 'none', stroke: h.color, 'stroke-width': '1', 'stroke-dasharray': '2.5 2',
+    }));
+    gHint.appendChild(mkS('rect', {
+      class: 'hint-badge',
+      x: h.lx - half, y: h.ly - half, width: sz, height: sz, rx: 4,
+      fill: '#ffffff', stroke: h.color, 'stroke-width': '1.2',
+    }));
+    gHint.appendChild(txS(h.lx, h.ly, 'i', {
+      class: 'hint-badge', 'font-size': '9', 'font-weight': '700', fill: h.color,
+    }));
+    gHint.appendChild(mkS('rect', {
+      class: 'hint-hit',
+      x: h.lx - 18, y: h.ly - 14, width: 36, height: 28, fill: 'transparent',
+    }));
+    svg.appendChild(gHint);
+  });
+
+  return svg;
+}
+
+function setFlowVersion(ver) {
+  document.body.dataset.flowVer = ver;
+}
+
+function renderSummaryPanel(ver = summaryVersion) {
+  summaryVersion = ver;
+  setFlowVersion(ver);
+  const spec = ver === '2.0' ? SUMMARY_V2 : SUMMARY_V1;
+  const sumDesc = document.getElementById('sum-desc');
+  const sumBody = document.getElementById('sum-body');
+  const sumStat = document.getElementById('sum-stat');
+  if (sumDesc) sumDesc.textContent = spec.desc;
+  if (sumStat) sumStat.textContent = SPEC.stats();
+  if (!sumBody) return;
+  sumBody.innerHTML = '';
+  const svg = renderSummarySVG(spec);
+  sumBody.appendChild(svg);
+  bindEdgeTips(sumBody);
+  renderMetaLegend(ver);
+  document.querySelectorAll('.sum-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.ver === ver);
+  });
+}
+
+/** 统一图例条：1.0 / 2.0 共用位置，2.0 追加对照色块 */
+function renderMetaLegend(ver = summaryVersion) {
+  const meta = document.getElementById('meta');
+  if (!meta) return;
+  meta.innerHTML = '';
+
+  LEGEND.forEach(l => {
+    const s = document.createElement('div');
+    s.className = 'leg';
+    s.innerHTML = `<div class="leg-swatch" style="background:${l.fill};border-color:${l.stroke}"></div>${l.label}`;
+    meta.appendChild(s);
+  });
+
+  const lc = VIS.palette.record.line;
+  const lineLeg = document.createElement('div');
+  lineLeg.className = 'leg-line';
+  lineLeg.innerHTML =
+    `<svg width="40" height="14"><defs><linearGradient id="leg-flow" x1="2" y1="7" x2="38" y2="7" gradientUnits="userSpaceOnUse">` +
+    `<stop offset="0%" stop-color="${lc}" stop-opacity="0.15"/><stop offset="100%" stop-color="${lc}" stop-opacity="1"/>` +
+    `</linearGradient></defs><path d="M2,7 C10,3 28,11 38,7" stroke="url(#leg-flow)" stroke-width="${VIS.edge.wMain}" fill="none" stroke-linecap="round"/></svg>` +
+    `淡→浓 · 表示流向`;
+  meta.appendChild(lineLeg);
+
+  const sc = VIS.palette.record.stroke;
+  const symLeg = document.createElement('div');
+  symLeg.className = 'leg-markers';
+  let symHtml =
+    `<span class="leg-markers-title">符号</span>` +
+    `<span class="leg-marker">` +
+      `<svg width="16" height="16" style="display:inline-block;vertical-align:middle;flex-shrink:0">` +
+        `<defs><clipPath id="leg-nc"><rect x="0" y="0" width="16" height="16" rx="3"/></clipPath></defs>` +
+        `<polygon points="16,0 16,16 0,0" fill="${sc}" clip-path="url(#leg-nc)" opacity="0.65"/>` +
+        `<text x="11.5" y="6.5" text-anchor="middle" dominant-baseline="middle" font-size="6.5" font-weight="700" fill="#fff" opacity="0.65">1</text>` +
+      `</svg>` +
+      `脚注` +
+    `</span>` +
+    `<span class="leg-marker">` +
+      `<svg width="16" height="16" style="display:inline-block;vertical-align:middle;flex-shrink:0">` +
+        `<path d="M2,8 C6,4 10,12 14,8" stroke="${sc}" stroke-width="1.2" fill="none" stroke-linecap="round" opacity="0.5"/>` +
+        `<circle cx="8" cy="8" r="5" fill="none" stroke="${sc}" stroke-width="1" stroke-dasharray="2 2" opacity="0.45"/>` +
+      `</svg>` +
+      `路径说明 · 悬停` +
+    `</span>`;
+  if (ver === '2.0') {
+    symHtml +=
+      `<span class="leg-markers-title">2.0</span>` +
+      `<span class="leg-marker"><i class="sum-v2-swatch new"></i>新增</span>` +
+      `<span class="leg-marker"><i class="sum-v2-swatch changed"></i>修改</span>` +
+      `<span class="leg-marker"><i class="sum-v2-swatch legacy"></i>淡化</span>` +
+      `<span class="leg-marker">` +
+        `<svg width="12" height="14" style="display:inline-block;vertical-align:middle;flex-shrink:0">` +
+          `<rect x="0" y="2" width="3" height="10" rx="1" fill="#007aff"/>` +
+          `<rect x="5" y="4" width="6" height="6" rx="1.5" fill="#007aff"/>` +
+          `<text x="8" y="8.5" text-anchor="middle" dominant-baseline="middle" font-size="5" font-weight="700" fill="#fff">新</text>` +
+        `</svg>新增泳道` +
+      `</span>`;
+  }
+  symLeg.innerHTML = symHtml;
+  meta.appendChild(symLeg);
+}
+
+/* ── 图例 & 脚注 DOM ── */
+function buildChrome() {
+  renderSummaryPanel('1.0');
+
+  document.querySelectorAll('.sum-tab').forEach(btn => {
+    btn.addEventListener('click', ev => {
+      ev.stopPropagation();
+      renderSummaryPanel(btn.dataset.ver);
+    });
+  });
+
+  const toggle = document.getElementById('sum-toggle');
+  const bar = document.getElementById('sum-bar');
+  if (toggle && bar) {
+    toggle.addEventListener('click', ev => {
+      if (ev.target.closest('.sum-tab')) return;
+      bar.classList.toggle('collapsed');
+      bar.classList.toggle('expanded');
+    });
+  }
+
+  // 脚注：精简格式
+  const foot = document.getElementById('footnotes');
+  NOTES.forEach(note => {
+    const p = document.createElement('div');
+    p.className = 'fn-item';
+    p.innerHTML = `${SPEC.markers.footnoteNum(note.id)} ${note.text}`;
+    foot.appendChild(p);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ④ 缩放平移
+═══════════════════════════════════════════════════════════ */
+let sx = 1, panX = 40, panY = 40, drag = false, dsx, dsy, dpx, dpy;
+
+function applyZoom() {
+  document.getElementById('wrap').style.transform = `translate(${panX}px,${panY}px) scale(${sx})`;
+  const z = document.getElementById('zlvl');
+  if (z) z.textContent = Math.round(sx * 100) + '%';
+}
+
+(function init() {
+  buildChrome();
+  render();
+
+  const vp = document.getElementById('vp');
+  const wrap = document.getElementById('wrap');
+
+  function fit() {
+    const vr = vp.getBoundingClientRect();
+    const s = Math.min((vr.width - 40) / L.W, (vr.height - 40) / L.H, 1);
+    sx = s; panX = (vr.width - L.W * s) / 2; panY = (vr.height - L.H * s) / 2;
+    applyZoom();
+  }
+
+  requestAnimationFrame(fit);
+
+  vp.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    drag = true; vp.classList.add('drag');
+    dsx = e.clientX; dsy = e.clientY; dpx = panX; dpy = panY;
+  });
+  window.addEventListener('mousemove', e => {
+    if (!drag) return;
+    panX = dpx + e.clientX - dsx; panY = dpy + e.clientY - dsy; applyZoom();
+  });
+  window.addEventListener('mouseup', () => { drag = false; vp.classList.remove('drag'); });
+  vp.addEventListener('wheel', e => {
+    e.preventDefault();
+    const r = vp.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+    const f = e.deltaY < 0 ? 1.12 : 0.88;
+    const ns = Math.min(3, Math.max(0.2, sx * f));
+    panX = mx - (mx - panX) * (ns / sx); panY = my - (my - panY) * (ns / sx);
+    sx = ns; applyZoom();
+  }, { passive: false });
+
+  document.getElementById('zIn').onclick = () => { sx = Math.min(sx * 1.2, 3); applyZoom(); };
+  document.getElementById('zOut').onclick = () => { sx = Math.max(sx / 1.2, 0.2); applyZoom(); };
+  document.getElementById('zFit').onclick = fit;
+  document.getElementById('z100').onclick = () => {
+    const vr = vp.getBoundingClientRect();
+    sx = 1; panX = Math.max(20, (vr.width - L.W) / 2); panY = Math.max(20, (vr.height - L.H) / 2);
+    applyZoom();
+  };
+  window.addEventListener('resize', fit);
+})();
+</script>
+</body>
+</html>

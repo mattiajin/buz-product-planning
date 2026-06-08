@@ -4,34 +4,37 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Buz 核心功能分类</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
     background: #f5f5f7;
     min-height: 100vh;
-    padding: 40px 24px 72px;
     color: #1d1d1f;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-content {
+    padding: 32px 24px 72px;
+    flex: 1;
   }
 
   /* ── Header ── */
   .page-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     max-width: 1400px;
     margin: 0 auto 28px;
-    flex-wrap: wrap;
-    gap: 12px;
+    text-align: center;
   }
-  .page-title { text-align: center; flex: 1; }
   h1 { font-size: 22px; font-weight: 600; color: #1d1d1f; margin-bottom: 4px; letter-spacing: -0.3px; }
   .subtitle { font-size: 13px; color: #86868b; }
 
-  .header-actions { display: flex; align-items: center; gap: 8px; }
-  .save-badge { font-size: 11px; color: #34c759; font-weight: 500; opacity: 0; transition: opacity 0.3s; white-space: nowrap; }
-  .save-badge.show { opacity: 1; }
   .btn-reset {
     font-size: 12px; font-weight: 500; color: #86868b;
     background: #fff; border: 1px solid #d2d2d7; border-radius: 8px;
@@ -227,15 +230,50 @@
   }
   .card-remove:hover { background: #fee2e2; color: #dc2626; }
 
+  /* ── S1: 工具效率占 2 列，与其余分类同一行 ── */
+  .cat-row.s1-row { grid-template-columns: repeat(6, 1fr); }
+  .eff-group {
+    grid-column: span 2;
+    background: #eff6ff;
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 80px;
+  }
+  .eff-top {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+    line-height: 1.3;
+  }
+  .eff-top .cat-def { margin-bottom: 0; font-size: 10px; flex: 1; min-width: 0; }
+  .eff-subcols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    flex: 1;
+  }
+  .eff-subcols .cat-col {
+    padding: 8px;
+    min-height: 0;
+    background: rgba(255,255,255,0.55);
+  }
+  .eff-subcols .cat-def { margin-bottom: 6px; font-size: 9px; }
+
   /* ── Section 1 color themes ── */
-  .c1-eff  { background: #eff6ff; } .c1-eff .cat-label  { background: #dbeafe; color: #1d4ed8; }
+  .c1-eff-comm { background: rgba(255,255,255,0.65); } .c1-eff-comm .cat-label { background: #dbeafe; color: #1d4ed8; }
+  .c1-eff-nc   { background: rgba(255,255,255,0.45); } .c1-eff-nc .cat-label   { background: #bfdbfe; color: #1e40af; }
   .c1-soc  { background: #f0fdf4; } .c1-soc .cat-label  { background: #dcfce7; color: #15803d; }
   .c1-ent  { background: #fff7ed; } .c1-ent .cat-label  { background: #ffedd5; color: #c2410c; }
   .c1-exp  { background: #fdf2f8; } .c1-exp .cat-label  { background: #fce7f3; color: #be185d; }
   .c1-misc { background: #f8fafc; } .c1-misc .cat-label { background: #e2e8f0; color: #475569; }
 
   /* Inline other-cat tag colors — s1 */
-  .tag-eff  { background: #dbeafe; color: #1d4ed8; }
+  .tag-eff      { background: #dbeafe; color: #1d4ed8; }
+  .tag-eff-nc   { background: #bfdbfe; color: #1e40af; }
   .tag-soc  { background: #dcfce7; color: #15803d; }
   .tag-ent  { background: #ffedd5; color: #c2410c; }
   .tag-exp  { background: #fce7f3; color: #be185d; }
@@ -253,24 +291,49 @@
   .c2-ai    { background: #faf5ff; } .c2-ai .cat-label    { background: #ede9fe; color: #6d28d9; }
   .c2-misc  { background: #f8fafc; } .c2-misc .cat-label  { background: #e2e8f0; color: #475569; }
 
-  @media (max-width: 1100px) { .cat-row { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 720px)  { .cat-row { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 480px)  { .cat-row { grid-template-columns: 1fr; } }
+  @media (max-width: 1100px) {
+    .cat-row { grid-template-columns: repeat(3, 1fr); }
+    .cat-row.s1-row { grid-template-columns: repeat(3, 1fr); }
+    .eff-group { grid-column: span 3; }
+    .eff-subcols { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 720px) {
+    .cat-row { grid-template-columns: repeat(2, 1fr); }
+    .cat-row.s1-row { grid-template-columns: repeat(2, 1fr); }
+    .eff-group { grid-column: span 2; }
+  }
+  @media (max-width: 480px) {
+    .cat-row, .cat-row.s1-row { grid-template-columns: 1fr; }
+    .eff-group { grid-column: span 1; }
+    .eff-subcols { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
 
+<div class="topbar">
+  <div class="topbar-left">
+    <a class="back-link" href="index.html">← 目录</a>
+    <span class="topbar-title">核心功能分类</span>
+  </div>
+  <nav class="topbar-nav" aria-label="Site">
+    <a class="nav-link" href="index.html">目录</a>
+    <a class="nav-link" href="buz_team.html">团队架构</a>
+    <a class="nav-link active" href="buz_features.html">功能分类</a>
+    <a class="nav-link" href="moment_log_flow.html">Moment Log</a>
+  </nav>
+  <div class="topbar-right">
+    <span class="tb-badge" id="saveBadge">✓ 已自动保存</span>
+    <button type="button" class="tb-btn tb-btn--primary" onclick="openSaveForm()">保存版本</button>
+    <button type="button" class="tb-btn" onclick="resetState()">恢复默认</button>
+  </div>
+</div>
+
+<div class="page-content">
+
 <div class="page-header">
-  <div style="width:130px"></div>
-  <div class="page-title">
-    <h1>Buz 核心功能分类</h1>
-    <p class="subtitle">23 项核心功能 · 两种分类视角 · 拖拽调整后自动保存</p>
-  </div>
-  <div class="header-actions">
-    <span class="save-badge" id="saveBadge">✓ 已自动保存</span>
-    <button class="btn-primary" onclick="openSaveForm()">保存版本</button>
-    <button class="btn-reset" onclick="resetState()">恢复默认</button>
-  </div>
+  <h1>Buz 核心功能分类</h1>
+  <p class="subtitle">23 项核心功能 · 两种分类视角 · 拖拽调整后自动保存</p>
 </div>
 
 <!-- Version bar -->
@@ -294,11 +357,25 @@
 <div class="section">
   <div class="section-no">分类法 1</div>
   <div class="section-name">动机场景分类法</div>
-  <div class="cat-row" id="s1-row">
-    <div class="cat-col c1-eff"  data-section="s1" data-cat="efficiency">
-      <div class="cat-header"><div class="cat-label">工具效率</div><div class="cat-count"></div></div>
-      <div class="cat-def">完成任务、解决问题、获取信息</div>
-      <div class="drop-hint">拖到这里</div>
+
+  <div class="cat-row s1-row" id="s1-row">
+    <div class="eff-group">
+      <div class="eff-top">
+        <div class="cat-label" style="background:#dbeafe;color:#1d4ed8;">工具效率</div>
+        <div class="cat-def">完成任务、解决问题、获取信息</div>
+      </div>
+      <div class="eff-subcols">
+        <div class="cat-col c1-eff-comm" data-section="s1" data-cat="eff_comm">
+          <div class="cat-header"><div class="cat-label">通讯场景</div><div class="cat-count"></div></div>
+          <div class="cat-def">通过与人互动完成任务</div>
+          <div class="drop-hint">拖到这里</div>
+        </div>
+        <div class="cat-col c1-eff-nc" data-section="s1" data-cat="eff_non_comm">
+          <div class="cat-header"><div class="cat-label">非通讯场景</div><div class="cat-count"></div></div>
+          <div class="cat-def">独立完成，不依赖他人</div>
+          <div class="drop-hint">拖到这里</div>
+        </div>
+      </div>
     </div>
     <div class="cat-col c1-soc"  data-section="s1" data-cat="social">
       <div class="cat-header"><div class="cat-label">社交关系</div><div class="cat-count"></div></div>
@@ -356,6 +433,8 @@
   </div>
 </div>
 
+</div>
+
 <script>
 /* ── Feature definitions ── */
 const FEATURES = {
@@ -387,7 +466,8 @@ const FEATURES = {
 /* Cat meta for "other categories" tags */
 const CAT_META = {
   s1: {
-    efficiency:    { label: '工具效率', tagClass: 'tag-eff'   },
+    eff_comm:      { label: '通讯场景', tagClass: 'tag-eff'    },
+    eff_non_comm:  { label: '非通讯场景', tagClass: 'tag-eff-nc' },
     social:        { label: '社交关系', tagClass: 'tag-soc'   },
     entertainment: { label: '娱乐消遣', tagClass: 'tag-ent'   },
     expression:    { label: '自我表达', tagClass: 'tag-exp'   },
@@ -405,23 +485,26 @@ const CAT_META = {
 /* ── Default state ── */
 const DEFAULT_STATE = {
   s1: {
-    efficiency:    ['ptt','vf_trans','vcall','videocall','screenshare','media_send','share_contact','buz_shortcut','watch','aloha','translator_bot','add_friend','tts','map'],
-    social:        ['ptt','voicemoji','vcall','videocall','liveplace','lp_game','screenshare','media_send','share_contact','moment_log','vstory','add_friend','map'],
-    entertainment: ['vf','vf_call','liveplace','lp_game','autoplay','aloha','ai_meme'],
-    expression:    ['voicemoji','vf','vf_call','moment_log','vstory','ai_meme'],
+    // 通讯场景：与人互动完成任务（含原未分类的通话/共享类）
+    eff_comm:      ['ptt','autoplay','vf_trans','aloha','vcall','videocall','screenshare','media_send'],
+    // 非通讯场景：独立完成（双语翻译机器人为典型工具效率）
+    eff_non_comm:  ['tts','buz_shortcut','watch','translator_bot'],
+    social:        ['moment_log','liveplace','lp_game','map','vstory','add_friend','share_contact'],
+    entertainment: ['vf','vf_call','liveplace','lp_game','aloha','ai_meme'],
+    expression:    ['moment_log','voicemoji','vf','vf_call','vstory'],
     misc:          [],
   },
   s2: {
-    audio:   ['ptt','voicemoji','vf','vcall','autoplay','vstory'],
-    visual:  ['videocall','liveplace','lp_game','screenshare','media_send','moment_log'],
-    text:    ['share_contact','add_friend','map'],
-    ai:      ['vf_trans','vf_call','aloha','translator_bot','tts','ai_meme'],
-    misc:    ['buz_shortcut','watch'],
+    audio:   ['ptt','autoplay','vf','tts','liveplace','voicemoji','vstory','ai_meme'],
+    visual:  ['moment_log','lp_game','screenshare','voicemoji','vstory','ai_meme'],
+    text:    ['map','share_contact'],
+    ai:      ['vf','vf_trans','vf_call','aloha','translator_bot','tts','ai_meme'],
+    misc:    ['buz_shortcut','watch','vcall','videocall','media_send','add_friend'],
   }
 };
 
 /* ── Persistence ── */
-const STORAGE_KEY = 'buz-features-v3';
+const STORAGE_KEY = 'buz-features-v5';
 
 function loadState() {
   try {

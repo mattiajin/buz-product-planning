@@ -4,11 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Buz 2.0 产品规划</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
     background: #f5f5f7;
     min-height: 100vh;
     color: #1d1d1f;
@@ -158,6 +163,19 @@
 </head>
 <body>
 
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-title">Buz 2.0 · 产品规划</span>
+  </div>
+  <nav class="topbar-nav" aria-label="Site">
+    <a class="nav-link active" href="index.html">目录</a>
+    <a class="nav-link" href="buz_team.html">团队架构</a>
+    <a class="nav-link" href="buz_features.html">功能分类</a>
+    <a class="nav-link" href="moment_log_flow.html">Moment Log</a>
+  </nav>
+  <div class="topbar-right"></div>
+</div>
+
 <!-- Hero -->
 <div class="hero">
   <div class="hero-eyebrow">Product Planning</div>
@@ -185,6 +203,15 @@
       <div class="doc-card-body">
         <div class="doc-card-title">核心功能分类</div>
         <div class="doc-card-desc">23 项核心功能的动机场景分类与信息载体分类，支持拖拽排序</div>
+      </div>
+      <div class="doc-card-arrow">→</div>
+    </a>
+
+    <a class="doc-card" href="moment_log_flow.html">
+      <div class="doc-card-icon" style="background:#e8faf0">🎬</div>
+      <div class="doc-card-body">
+        <div class="doc-card-title">Moment Log 流程图</div>
+        <div class="doc-card-desc">单画布泳道图 · 合并表头 · 双入口与三分支对齐</div>
       </div>
       <div class="doc-card-arrow">→</div>
     </a>

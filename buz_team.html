@@ -4,15 +4,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Buz 团队架构</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300..700;1,9..40,300..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/site.css">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   body {
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    font-family: "DM Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
     background: #f5f5f7;
     min-height: 100vh;
-    padding: 40px 24px 72px;
     color: #1d1d1f;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .page-content {
+    padding: 40px 24px 72px;
+    flex: 1;
+  }
+
+  .ceo-card .en,
+  .card .en {
+    font-family: "DM Sans", sans-serif;
   }
 
   h1 {
@@ -22,35 +38,6 @@
     color: #1d1d1f;
     margin-bottom: 20px;
     letter-spacing: -0.3px;
-  }
-
-  /* ── Mode toggle ── */
-  .mode-toggle {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 32px;
-  }
-  .toggle-wrap {
-    display: flex;
-    background: #e5e5ea;
-    border-radius: 20px;
-    padding: 3px;
-  }
-  .toggle-btn {
-    padding: 6px 20px;
-    border-radius: 16px;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    border: none;
-    background: transparent;
-    color: #6e6e73;
-    transition: background 0.2s, color 0.2s;
-  }
-  .toggle-btn.active {
-    background: #fff;
-    color: #1d1d1f;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
   }
 
   /* ── CEO block ── */
@@ -224,14 +211,28 @@
 </head>
 <body class="current" id="body">
 
-<h1>Buz 团队架构</h1>
-
-<div class="mode-toggle">
-  <div class="toggle-wrap">
-    <button class="toggle-btn active" id="btn-current" onclick="setMode('current')">现况</button>
-    <button class="toggle-btn" id="btn-future" onclick="setMode('future')">考虑尝试</button>
+<div class="topbar">
+  <div class="topbar-left">
+    <a class="back-link" href="index.html">← 目录</a>
+    <span class="topbar-title">团队架构</span>
+  </div>
+  <nav class="topbar-nav" aria-label="Site">
+    <a class="nav-link" href="index.html">目录</a>
+    <a class="nav-link active" href="buz_team.html">团队架构</a>
+    <a class="nav-link" href="buz_features.html">功能分类</a>
+    <a class="nav-link" href="moment_log_flow.html">Moment Log</a>
+  </nav>
+  <div class="topbar-right">
+    <div class="tb-seg">
+      <button type="button" class="tb-btn active" id="btn-current" onclick="setMode('current')">现况</button>
+      <button type="button" class="tb-btn" id="btn-future" onclick="setMode('future')">考虑尝试</button>
+    </div>
   </div>
 </div>
+
+<div class="page-content">
+
+<h1>Buz 团队架构</h1>
 
 <!-- CEO -->
 <div class="ceo-block">
@@ -365,6 +366,8 @@
     </div>
 
   </div>
+
+</div>
 
 </div>
 

@@ -1,0 +1,168 @@
+/* Shared site chrome — topbar + nav */
+
+.topbar {
+  height: 50px;
+  background: #1d1d1f;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 16px;
+  padding: 0 20px;
+  flex-shrink: 0;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  justify-self: start;
+  min-width: 0;
+}
+
+.topbar-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f5f5f7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.back-link {
+  font-size: 13px;
+  color: #6e6e73;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.back-link:hover {
+  color: #f5f5f7;
+}
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  justify-self: center;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: end;
+}
+
+.nav-link {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6e6e73;
+  text-decoration: none;
+  padding: 5px 11px;
+  border-radius: 6px;
+  white-space: nowrap;
+  transition: color 0.15s, background 0.15s;
+}
+
+.nav-link:hover {
+  color: #f5f5f7;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.nav-link.active {
+  color: #f5f5f7;
+  background: #3a3a3c;
+}
+
+/* ── Topbar controls (buttons · toggle · zoom) ── */
+.tb-btn {
+  height: 30px;
+  min-width: 30px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border: 1px solid #3a3a3c;
+  background: #2c2c2e;
+  color: #f5f5f7;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.tb-btn:hover {
+  background: #3a3a3c;
+}
+
+.tb-btn--primary {
+  background: #f5f5f7;
+  border-color: #f5f5f7;
+  color: #1d1d1f;
+}
+
+.tb-btn--primary:hover {
+  background: #e5e5ea;
+  border-color: #e5e5ea;
+}
+
+.tb-seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  border: 1px solid #3a3a3c;
+  background: #2c2c2e;
+}
+
+.tb-seg .tb-btn {
+  height: 26px;
+  min-width: auto;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  color: #aeaeb2;
+}
+
+.tb-seg .tb-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f5f5f7;
+}
+
+.tb-seg .tb-btn.active {
+  background: #48484a;
+  color: #f5f5f7;
+}
+
+.tb-seg .tb-btn.active:hover {
+  background: #48484a;
+}
+
+.tb-lvl {
+  min-width: 44px;
+  text-align: center;
+  font-size: 12px;
+  color: #aeaeb2;
+  font-variant-numeric: tabular-nums;
+}
+
+.tb-badge {
+  font-size: 11px;
+  color: #34c759;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.3s;
+  white-space: nowrap;
+}
+
+.tb-badge.show {
+  opacity: 1;
+}
+
+@media (max-width: 720px) {
+  .topbar-nav {
+    display: none;
+  }
+}
