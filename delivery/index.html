@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设计与产品交付 · Buz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --s-meta: 11px;
+    --s-ui: 13px;
+    --s-lh: 1.3;
+    --s-track: 0.01em;
+    --s-4: 4px;
+    --s-8: 8px;
+    --s-12: 12px;
+    --s-16: 16px;
+    --s-24: 24px;
+    --s-ink: #fff;
+    --s-body: #b3b3b3;
+    --s-dim: #808080;
+    --s-quiet: #4d4d4d;
+    --s-page: #111;
+    --s-well: #1a1a1a;
+    --s-card: #292929;
+    --s-raise: #3d3d3d;
+    --s-line: rgba(255, 255, 255, 0.08);
+    --s-lime: #c4f353;
+    --s-olive: #3b4525;
+    --s-radius: 16px;
+    --s-nested: 8px;
+    --s-pill: 100px;
+    --s-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  html, body { min-height: 100%; }
+  body {
+    background: var(--s-page);
+    color: var(--s-ink);
+    font-family: 'Nunito', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .cover {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 48px 24px;
+  }
+
+  .cover-head {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-8);
+    margin-bottom: var(--s-24);
+  }
+  .cover-title {
+    font-weight: 700;
+    font-size: var(--s-ui);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-ink);
+  }
+  .cover-lead {
+    font-weight: 400;
+    font-size: var(--s-meta);
+    line-height: 1.45;
+    letter-spacing: var(--s-track);
+    color: var(--s-dim);
+  }
+
+  .cover-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-8);
+  }
+  .cover-block + .cover-block {
+    margin-top: var(--s-24);
+  }
+  .cover-kicker {
+    padding: 0 var(--s-8);
+    font-weight: 700;
+    font-size: var(--s-meta);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-body);
+  }
+
+  .cover-card {
+    background: var(--s-card);
+    border-radius: var(--s-radius);
+    padding: var(--s-8);
+  }
+
+  .iter {
+    display: flex;
+    gap: var(--s-12);
+    align-items: flex-start;
+    padding: var(--s-8);
+    border-radius: var(--s-nested);
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.18s ease;
+  }
+  .iter:hover { background: var(--s-raise); }
+  .iter:focus-visible {
+    outline: 2px solid var(--s-ink);
+    outline-offset: 2px;
+  }
+
+  .iter-num {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    margin-top: 1px;
+    border-radius: 50%;
+    background: var(--s-raise);
+    box-shadow: 0 0 0 1.5px var(--s-lime);
+    font-weight: 800;
+    font-size: var(--s-meta);
+    line-height: 1;
+    color: var(--s-lime);
+  }
+
+  .iter-body { flex: 1; min-width: 0; }
+  .iter-title {
+    font-weight: 700;
+    font-size: var(--s-ui);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-ink);
+  }
+  .iter-desc {
+    margin-top: var(--s-4);
+    font-weight: 400;
+    font-size: var(--s-ui);
+    line-height: 1.45;
+    letter-spacing: var(--s-track);
+    color: var(--s-body);
+  }
+
+  .iter-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s-4);
+    margin-top: var(--s-8);
+  }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    height: 20px;
+    padding: 0 var(--s-8);
+    border-radius: var(--s-pill);
+    font-weight: 700;
+    font-size: var(--s-meta);
+    letter-spacing: var(--s-track);
+  }
+  .pill-done {
+    background: var(--s-olive);
+    color: var(--s-lime);
+  }
+  .pill-wip {
+    background: var(--s-raise);
+    color: var(--s-dim);
+  }
+
+  .iter-go {
+    flex-shrink: 0;
+    align-self: center;
+    width: 20px;
+    height: 20px;
+    color: var(--s-dim);
+  }
+  .iter:hover .iter-go { color: var(--s-ink); }
+
+  .doc {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--s-12);
+    padding: var(--s-8);
+    border-radius: var(--s-nested);
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.18s ease;
+  }
+  .doc:hover { background: var(--s-raise); }
+  .doc:focus-visible {
+    outline: 2px solid var(--s-ink);
+    outline-offset: 2px;
+  }
+  .doc-ico {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+    color: var(--s-quiet);
+    transition: color 0.18s ease;
+  }
+  .doc:hover .doc-ico { color: var(--s-dim); }
+  .doc-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-4);
+  }
+  .doc-title {
+    font-weight: 700;
+    font-size: var(--s-ui);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-ink);
+  }
+  .doc-desc {
+    font-weight: 400;
+    font-size: var(--s-meta);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-dim);
+  }
+  .doc-type {
+    flex-shrink: 0;
+    align-self: center;
+    font-weight: 700;
+    font-size: var(--s-meta);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-quiet);
+  }
+
+  @media (max-width: 520px) {
+    .cover { padding: 32px 16px; }
+  }
+</style>
+</head>
+<body>
+  <main class="cover">
+    <header class="cover-head">
+      <h1 class="cover-title">设计与产品交付</h1>
+      <p class="cover-lead">打开一项就能点原型、看需求、对照标注。</p>
+    </header>
+    <section class="cover-block">
+      <p class="cover-kicker">迭代 · 2026.9.4</p>
+      <div class="cover-card">
+        <a class="iter" href="01-ai-character/index.html">
+          <span class="iter-num">1</span>
+          <div class="iter-body">
+            <p class="iter-title">AI Character</p>
+            <p class="iter-desc">资料页、编辑叠层、AI 润色。</p>
+            <div class="iter-meta">
+              <span class="pill pill-done">设计已定</span>
+              <span class="pill pill-wip">PRD 待补</span>
+            </div>
+          </div>
+          <svg class="iter-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </a>
+      </div>
+    </section>
+    <section class="cover-block">
+      <p class="cover-kicker">文档</p>
+      <div class="cover-card">
+        <a class="doc" href="01-ai-character/docs/handoff.md">
+          <svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
+          <span class="doc-body">
+            <span class="doc-title">交接</span>
+            <span class="doc-desc">给产品看的清单：已定什么、还差什么</span>
+          </span>
+          <span class="doc-type">.md</span>
+        </a>
+        <a class="doc" href="01-ai-character/docs/prd.md">
+          <svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+          <span class="doc-body">
+            <span class="doc-title">PRD</span>
+            <span class="doc-desc">需求草稿，和原型右栏同一份</span>
+          </span>
+          <span class="doc-type">.md</span>
+        </a>
+        <a class="doc" href="01-ai-character/docs/motion.md">
+          <svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"/><path d="m8 7 4 8"/><path d="m16 7-4 8"/><rect width="18" height="4" x="3" y="5" rx="1"/></svg>
+          <span class="doc-body">
+            <span class="doc-title">动效</span>
+            <span class="doc-desc">时长、曲线、角标对照</span>
+          </span>
+          <span class="doc-type">.md</span>
+        </a>
+        <a class="doc" href="01-ai-character/docs/stacked_bottom_sheet.md">
+          <svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.91a1 1 0 0 0 0-1.83Z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>
+          <span class="doc-body">
+            <span class="doc-title">叠层</span>
+            <span class="doc-desc">两层 sheet 的尺寸与时序</span>
+          </span>
+          <span class="doc-type">.md</span>
+        </a>
+        <a class="doc" href="docs/annot_shell.md">
+          <svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
+          <span class="doc-body">
+            <span class="doc-title">标注壳</span>
+            <span class="doc-desc">共用版式：左右栏、开关、角标</span>
+          </span>
+          <span class="doc-type">.md</span>
+        </a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

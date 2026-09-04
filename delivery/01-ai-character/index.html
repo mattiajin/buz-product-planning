@@ -1,0 +1,5635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Character Create & Edit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  @font-face {
+    font-family: 'buz';
+    src: url('assets/fonts/buz.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  @property --recede {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 0;
+  }
+
+  html, body {
+    min-height: 100%;
+  }
+  body {
+    background: #111;
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+  }
+
+  .studio {
+    --s-meta: 11px;
+    --s-ui: 13px;
+    --s-lh: 1.3;
+    --s-track: 0.01em;
+    --s-4: 4px;
+    --s-8: 8px;
+    --s-12: 12px;
+    --s-16: 16px;
+    --s-24: 24px;
+    --s-ink: #fff;
+    --s-body: #b3b3b3;
+    --s-dim: #808080;
+    --s-quiet: #4d4d4d;
+    --s-page: #111;
+    --s-well: #1a1a1a;
+    --s-card: #292929;
+    --s-raise: #3d3d3d;
+    --s-line: rgba(255, 255, 255, 0.08);
+    --s-lime: #c4f353;
+    --s-olive: #3b4525;
+    --s-radius: 16px;
+    --s-nested: 8px;
+    --s-pill: 100px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 375px minmax(0, 1fr);
+    grid-template-rows: minmax(812px, 1fr) auto;
+    column-gap: 24px;
+    min-height: 100vh;
+    padding: 24px 48px;
+  }
+
+  .studio-rail {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-16);
+    width: 240px;
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    align-self: center;
+    height: auto;
+    justify-content: flex-start;
+  }
+
+  .studio-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .studio-label {
+    padding: 0 var(--s-8);
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: var(--s-meta);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-dim);
+  }
+
+  .studio-seg {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    height: 36px;
+    padding: 3px;
+    border-radius: var(--s-pill);
+    background: var(--s-well);
+    box-shadow: 0 0 0 0.5px var(--s-line);
+  }
+  .studio-seg-thumb {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40px;
+    height: 30px;
+    border-radius: var(--s-pill);
+    background: var(--s-raise);
+    pointer-events: none;
+    z-index: 0;
+    transition:
+      transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      width 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .studio-seg button {
+    position: relative;
+    z-index: 1;
+    flex: 1 0 0;
+    height: 30px;
+    padding: 0 var(--s-4);
+    border: none;
+    border-radius: var(--s-pill);
+    background: transparent;
+    color: var(--s-dim);
+    font-family: 'Nunito', sans-serif;
+    font-size: var(--s-meta);
+    font-weight: 700;
+    letter-spacing: var(--s-track);
+    cursor: pointer;
+    transition: color 0.18s ease;
+  }
+  .studio-seg button:hover {
+    color: var(--s-ink);
+  }
+  .studio-seg button.is-on {
+    color: var(--s-ink);
+  }
+  .studio-group--annot {
+    gap: var(--s-8);
+  }
+  .studio-card {
+    width: 100%;
+    background: var(--s-card);
+    border-radius: var(--s-radius);
+  }
+  .studio-wifi {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-8);
+    width: 100%;
+    min-height: 30px;
+    padding: 0 0 0 var(--s-8);
+  }
+  .studio-wifi-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: var(--s-ui);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-ink);
+  }
+  .studio-switch {
+    flex-shrink: 0;
+  }
+  .studio-switch,
+  .studio-switch input,
+  .studio-switch input:focus,
+  .studio-switch input:focus-visible {
+    outline: none;
+  }
+  .studio-switch .switch-ui {
+    background: var(--s-olive);
+    border-radius: 15px;
+    opacity: 1;
+    transition: background 0.22s cubic-bezier(0.25, 0.72, 0.22, 1);
+  }
+  .studio-switch .switch-ui img {
+    display: none;
+  }
+  .studio-switch .switch-ui::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #c4f353;
+    transform: translateX(18px);
+    transition:
+      transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      background 0.22s cubic-bezier(0.25, 0.72, 0.22, 1);
+  }
+  .studio-switch .switch-off {
+    display: none;
+  }
+  .studio-switch input:not(:checked) ~ .switch-ui {
+    background: #3d3d3d;
+    opacity: 1;
+  }
+  .studio-switch input:not(:checked) ~ .switch-ui::after {
+    background: #fff;
+    transform: translateX(0);
+  }
+  .studio-annot-slot {
+    display: grid;
+    grid-template-rows: 0fr;
+    width: 100%;
+    transition: grid-template-rows 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .studio.is-annot .studio-annot-slot {
+    grid-template-rows: 1fr;
+  }
+  .studio-annot-kinds {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transform: translate3d(0, -6px, 0);
+    pointer-events: none;
+    transition:
+      opacity 0.22s cubic-bezier(0.25, 0.72, 0.22, 1),
+      transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s linear 0.28s;
+  }
+  .studio.is-annot .studio-annot-kinds {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    pointer-events: auto;
+    transition:
+      opacity 0.22s cubic-bezier(0.25, 0.72, 0.22, 1),
+      transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s;
+  }
+  .studio-menu {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    width: 100%;
+    padding: var(--s-8);
+  }
+  .annot-thumb {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    top: 0;
+    height: 40px;
+    border-radius: var(--s-nested);
+    background: var(--s-raise);
+    z-index: 0;
+    opacity: 0;
+    transform: translate3d(0, 0, 0);
+    transition:
+      transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      height 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      opacity 0.18s ease;
+  }
+  .studio.is-annot .annot-thumb {
+    opacity: 1;
+  }
+  .annot-mode {
+    appearance: none;
+    -webkit-appearance: none;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s-8);
+    width: 100%;
+    min-height: 40px;
+    padding: var(--s-8);
+    border: none;
+    border-radius: var(--s-nested);
+    background: transparent;
+    color: var(--s-ink);
+    font-family: 'Nunito', sans-serif;
+    font-size: var(--s-ui);
+    font-weight: 700;
+    letter-spacing: var(--s-track);
+    text-align: left;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.18s ease;
+  }
+  .annot-check {
+    flex-shrink: 0;
+    width: 20px;
+    font-family: 'buz', sans-serif;
+    font-size: 20px;
+    line-height: 1;
+    color: var(--s-lime);
+    opacity: 0;
+    transform: scale(0.84);
+    transition:
+      opacity 0.22s cubic-bezier(0.25, 0.72, 0.22, 1),
+      transform 0.22s cubic-bezier(0.25, 0.72, 0.22, 1);
+  }
+  .annot-mode.is-on .annot-check {
+    opacity: 1;
+    transform: scale(1);
+  }
+  .annot-mode:hover:not(.is-on) {
+    color: var(--s-body);
+  }
+  .annot-mode.is-on {
+    color: var(--s-ink);
+  }
+  .studio-exit {
+    position: fixed;
+    top: 24px;
+    left: calc(48px - var(--s-8));
+    z-index: 30;
+    grid-column: 1;
+    grid-row: 1;
+    width: max-content;
+    justify-self: start;
+    align-self: start;
+    display: flex;
+    align-items: center;
+    gap: var(--s-8);
+    margin: 0;
+    padding: 0 var(--s-8);
+    border: none;
+    background: transparent;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.18s ease;
+  }
+  .studio-exit .studio-ico {
+    width: 12px;
+    height: 12px;
+    color: var(--s-quiet);
+    transition: color 0.18s ease;
+  }
+  .studio-exit-label {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: var(--s-meta);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-quiet);
+    transition: color 0.18s ease;
+  }
+  .studio-exit:hover .studio-exit-label,
+  .studio-exit:hover .studio-ico {
+    color: var(--s-dim);
+  }
+
+  .studio-seg button:focus-visible,
+  .annot-mode:focus-visible,
+  .studio-exit:focus-visible,
+  .studio-workspace:focus-visible,
+  .annot-copy:focus-visible,
+  .annot-md-toggle:focus-visible,
+  .annot-icon:focus-visible {
+    outline: 2px solid var(--s-ink);
+    outline-offset: 2px;
+  }
+  .studio:not(.is-ready) .studio-annot-slot,
+  .studio:not(.is-ready) .studio-annot-kinds,
+  .studio:not(.is-ready) .annot-thumb,
+  .studio:not(.is-ready) .annot-check,
+  .studio:not(.is-ready) .studio-explore-slot,
+  .studio:not(.is-ready) .studio-group--explore,
+  .studio:not(.is-ready) .studio-seg-thumb {
+    transition: none !important;
+  }
+
+  .studio-caption {
+    padding: 0 var(--s-8);
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: var(--s-meta);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-dim);
+  }
+  .studio-explore-heading {
+    padding: 0 var(--s-8);
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: var(--s-ui);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-ink);
+  }
+
+  .studio-group--explore {
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    transform: translate3d(0, -6px, 0);
+    pointer-events: none;
+    transition:
+      opacity 0.22s cubic-bezier(0.25, 0.72, 0.22, 1),
+      transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s linear 0.28s;
+  }
+  .studio-workspace-stack {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-8);
+    width: 100%;
+    margin-top: 0;
+    padding-top: var(--s-16);
+    border-top: 0.5px solid var(--s-line);
+  }
+  .studio-explore-slot {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .studio.is-explore .studio-explore-slot {
+    grid-template-rows: 1fr;
+  }
+  .studio.is-explore .studio-group--explore {
+    opacity: 1;
+    visibility: visible;
+    transform: none;
+    pointer-events: auto;
+    transition:
+      opacity 0.22s cubic-bezier(0.25, 0.72, 0.22, 1),
+      transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s;
+  }
+  .studio-workspace {
+    display: flex;
+    align-items: center;
+    gap: var(--s-8);
+    width: auto;
+    max-width: 100%;
+    margin: 0;
+    padding: 0 var(--s-8);
+    border: none;
+    border-radius: var(--s-radius);
+    background: transparent;
+    box-shadow: none;
+    text-align: left;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.18s ease;
+  }
+  .studio-workspace .studio-ico {
+    width: 12px;
+    height: 12px;
+    color: var(--s-quiet);
+    transition: color 0.18s ease;
+  }
+  .studio-workspace-title {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: var(--s-meta);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-quiet);
+  }
+  .studio-workspace:hover .studio-workspace-title,
+  .studio-workspace:hover .studio-ico {
+    color: #808080;
+  }
+  .studio.is-explore .studio-workspace-stack .studio-workspace-title,
+  .studio.is-explore .studio-workspace-stack .studio-workspace .studio-ico {
+    color: #808080;
+  }
+
+  .studio-ico {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    color: #b3b3b3;
+    display: block;
+  }
+
+  .studio-board,
+  .studio-hero {
+    display: contents;
+  }
+
+  .studio-stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    justify-self: center;
+  }
+
+  .prd-mark,
+  .spec-mark {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: 0;
+    pointer-events: none;
+    box-shadow: 0 0 0 2px var(--s-page);
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.84);
+    transition:
+      opacity 0.22s cubic-bezier(0.25, 0.72, 0.22, 1),
+      transform 0.22s cubic-bezier(0.25, 0.72, 0.22, 1),
+      color 0.18s ease,
+      background 0.18s ease,
+      box-shadow 0.18s ease,
+      visibility 0s linear 0.22s;
+  }
+  .prd-mark {
+    background: var(--s-lime);
+    color: var(--s-page);
+  }
+  .spec-mark {
+    background: var(--s-raise);
+    color: var(--s-lime);
+    box-shadow: 0 0 0 2px var(--s-page), 0 0 0 3.5px var(--s-lime);
+  }
+  .studio.is-prd .prd-mark.spec-mark {
+    background: var(--s-lime);
+    color: var(--s-page);
+    box-shadow: 0 0 0 2px var(--s-page);
+  }
+  .studio.is-spec .prd-mark.spec-mark {
+    background: var(--s-raise);
+    color: var(--s-lime);
+    box-shadow: 0 0 0 2px var(--s-page), 0 0 0 3.5px var(--s-lime);
+  }
+  .mark-hit {
+    position: relative;
+    display: block;
+    overflow: visible;
+  }
+  .mark-hit--cta {
+    flex: 1 0 0;
+    min-width: 0;
+  }
+  .mark-hit--cta .cta-btn {
+    width: 100%;
+  }
+  .mark-hit--fill {
+    width: 100%;
+  }
+  .mark-hit--close {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    z-index: 1;
+    width: 24px;
+    height: 24px;
+    transform: translateY(-50%);
+  }
+  .mark-hit--save {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    z-index: 1;
+    transform: translateY(-50%);
+  }
+  .studio.is-prd .ai-refine-hit:not(:has(.ai-refine.is-visible)) .prd-mark,
+  .studio.is-spec .ai-refine-hit:not(:has(.ai-refine.is-visible)) .spec-mark {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .studio.is-prd .prd-mark,
+  .studio.is-spec .spec-mark {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+    transition:
+      opacity 0.22s cubic-bezier(0.25, 0.72, 0.22, 1),
+      transform 0.22s cubic-bezier(0.25, 0.72, 0.22, 1),
+      color 0.18s ease,
+      background 0.18s ease,
+      box-shadow 0.18s ease,
+      visibility 0s;
+  }
+  .prd-mark.is-hot,
+  .spec-mark.is-hot,
+  [data-hot].is-hot .prd-mark,
+  [data-hot].is-hot .spec-mark,
+  .mark-hit.is-hot .prd-mark,
+  .mark-hit.is-hot .spec-mark {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 2px var(--s-page), 0 0 0 5px var(--s-lime);
+  }
+  .studio.is-prd [data-hot].is-hot .prd-mark.spec-mark,
+  .studio.is-prd .prd-mark.spec-mark.is-hot,
+  .studio.is-spec [data-hot].is-hot .prd-mark.spec-mark,
+  .studio.is-spec .prd-mark.spec-mark.is-hot {
+    box-shadow: 0 0 0 2px var(--s-page), 0 0 0 5px var(--s-lime);
+  }
+  .prd-mark--inline,
+  .spec-mark--inline {
+    position: static;
+    top: auto;
+    right: auto;
+    flex-shrink: 0;
+    display: inline-flex;
+    transform: none;
+  }
+  .prd-mark--inline {
+    box-shadow: none;
+  }
+  .spec-mark--inline {
+    box-shadow: 0 0 0 1.5px var(--s-lime);
+  }
+  [data-hot].is-hot .prd-mark--inline,
+  [data-hot].is-hot .spec-mark--inline {
+    transform: none;
+    box-shadow: 0 0 0 2px var(--s-card), 0 0 0 4px var(--s-lime);
+  }
+  .prd-rule.is-hot .prd-mark--inline,
+  .prd-rule.is-hot .spec-mark--inline {
+    box-shadow: 0 0 0 2px var(--s-raise), 0 0 0 4px var(--s-lime);
+  }
+
+  .annot-col {
+    display: grid;
+    grid-template-rows: 0fr;
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: stretch;
+    width: 100%;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate3d(0, 10px, 0);
+    transition:
+      grid-template-rows 0.36s cubic-bezier(0.32, 0.72, 0, 1),
+      padding 0.36s cubic-bezier(0.32, 0.72, 0, 1),
+      opacity 0.28s cubic-bezier(0.25, 0.72, 0.22, 1),
+      transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s linear 0.28s;
+  }
+  .studio.is-annot .annot-col {
+    grid-template-rows: 1fr;
+    padding: var(--s-16) 0 var(--s-24);
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    transition:
+      grid-template-rows 0.36s cubic-bezier(0.32, 0.72, 0, 1),
+      padding 0.36s cubic-bezier(0.32, 0.72, 0, 1),
+      opacity 0.28s cubic-bezier(0.25, 0.72, 0.22, 1),
+      transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s;
+  }
+  @media (max-width: 1199px) {
+    .studio.is-annot .annot-col {
+      max-height: min(420px, 48vh);
+    }
+  }
+  .annot-inner {
+    display: grid;
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    width: 100%;
+    padding-top: var(--s-16);
+    border-top: 0.5px solid var(--s-line);
+    scroll-padding-top: 36px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--s-raise) transparent;
+  }
+  .annot-inner::-webkit-scrollbar {
+    width: 8px;
+  }
+  .annot-inner::-webkit-scrollbar-thumb {
+    background: var(--s-raise);
+    border-radius: var(--s-pill);
+  }
+  .studio.is-annot .annot-inner {
+    overflow: auto;
+  }
+  @media (min-width: 1200px) {
+    .annot-col {
+      display: block;
+      grid-column: 3;
+      grid-row: 1;
+      align-self: center;
+      justify-self: stretch;
+      width: 100%;
+      min-width: 0;
+      height: min(812px, calc(100vh - 48px));
+      max-height: min(812px, calc(100vh - 48px));
+      padding: 0;
+      overflow: hidden;
+      transform: translate3d(16px, 0, 0);
+    }
+    .studio.is-annot .annot-col {
+      padding: 0;
+      transform: none;
+    }
+    .annot-inner {
+      width: 100%;
+      height: 100%;
+      max-height: min(812px, calc(100vh - 48px));
+      padding-top: 0;
+      padding-left: var(--s-16);
+      padding-right: var(--s-16);
+      border-top: none;
+      border-left: 0.5px solid var(--s-line);
+      overflow-y: auto;
+    }
+  }
+  .prd-panel,
+  .spec-panel {
+    grid-area: 1 / 1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-12);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate3d(0, 8px, 0);
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    width: 100%;
+    z-index: 0;
+    transition:
+      opacity 0.24s cubic-bezier(0.25, 0.72, 0.22, 1),
+      transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s;
+  }
+  .studio.is-prd .prd-panel,
+  .studio.is-spec .spec-panel {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: none;
+    position: relative;
+    z-index: 1;
+    transition:
+      opacity 0.24s cubic-bezier(0.25, 0.72, 0.22, 1),
+      transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s;
+  }
+  .annot-md-clip {
+    display: grid;
+    grid-template-rows: 0fr;
+    min-width: 0;
+    transition: grid-template-rows 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .annot-md-block.is-open .annot-md-clip {
+    grid-template-rows: 1fr;
+  }
+  .annot-md-clip > .annot-md {
+    min-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transform: translate3d(0, -6px, 0);
+    transition:
+      opacity 0.22s cubic-bezier(0.25, 0.72, 0.22, 1),
+      transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .annot-md-block.is-open .annot-md-clip > .annot-md {
+    opacity: 1;
+    transform: none;
+    overflow: auto;
+    scroll-margin-top: 36px;
+  }
+  .annot-md-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+  }
+  .annot-md-block.is-open {
+    gap: var(--s-8);
+  }
+  .annot-md-toggle,
+  .annot-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-8);
+    flex-shrink: 0;
+    height: 20px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--s-dim);
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: var(--s-meta);
+    letter-spacing: var(--s-track);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: color 0.18s ease;
+  }
+  .annot-md-toggle:hover,
+  .annot-copy:hover {
+    color: var(--s-ink);
+  }
+  .annot-md-toggle .studio-ico,
+  .annot-copy .studio-ico {
+    width: 12px;
+    height: 12px;
+    color: currentColor;
+    transition: transform 0.18s ease;
+  }
+  .annot-md-block.is-open .annot-md-toggle {
+    color: var(--s-ink);
+  }
+  .annot-md-block.is-open .annot-md-toggle .studio-ico {
+    transform: rotate(180deg);
+  }
+  .annot-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--s-8);
+    padding: 0 0 var(--s-8);
+    background: var(--s-page);
+    box-shadow: 0 10px 12px -4px var(--s-page);
+  }
+  .annot-toolbar::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -2px;
+    height: 2px;
+    background: var(--s-page);
+    pointer-events: none;
+  }
+  .annot-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .annot-file {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: var(--s-meta);
+    letter-spacing: var(--s-track);
+    color: var(--s-dim);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .annot-copy.is-done {
+    color: var(--s-lime);
+  }
+  .annot-md {
+    margin: 0;
+    padding: var(--s-12);
+    border-radius: var(--s-radius);
+    background: var(--s-well);
+    box-shadow: inset 0 0 0 0.5px var(--s-line);
+    color: var(--s-body);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--s-meta);
+    line-height: 1.5;
+    letter-spacing: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-x: auto;
+  }
+  .prd-card {
+    width: 100%;
+    padding: var(--s-16);
+    background: var(--s-card);
+    border-radius: var(--s-radius);
+  }
+  .prd-card:has(> ul) {
+    padding: var(--s-8);
+  }
+  .prd-card h3 {
+    margin-bottom: var(--s-8);
+    padding: 0;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: var(--s-meta);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-body);
+  }
+  .prd-card:has(> ul) h3 {
+    margin-bottom: 0;
+    padding: var(--s-8) var(--s-8) var(--s-4);
+  }
+  .prd-card p,
+  .prd-card li,
+  .prd-card td {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: var(--s-ui);
+    line-height: 1.45;
+    letter-spacing: var(--s-track);
+    color: var(--s-body);
+  }
+  .prd-card p + p {
+    margin-top: var(--s-8);
+  }
+  .prd-card ul {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    list-style: none;
+  }
+  .prd-rule {
+    display: flex;
+    gap: var(--s-12);
+    align-items: flex-start;
+    padding: var(--s-8);
+    margin: 0;
+    border-radius: var(--s-nested);
+    cursor: pointer;
+    transition:
+      background 0.18s ease,
+      color 0.18s ease;
+  }
+  .prd-rule + .prd-rule {
+    box-shadow: inset 0 0.5px 0 var(--s-line);
+  }
+  .prd-rule:hover {
+    background: color-mix(in srgb, var(--s-raise) 45%, var(--s-card));
+  }
+  .prd-rule.is-hot {
+    background: var(--s-raise);
+    box-shadow: none;
+  }
+  .prd-rule.is-hot + .prd-rule {
+    box-shadow: inset 0 0.5px 0 transparent;
+  }
+  .prd-rule.is-hot p {
+    color: var(--s-ink);
+  }
+  .prd-rule-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+    min-width: 42px;
+    margin-top: 0;
+  }
+  .prd-rule .annot-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--s-dim);
+    cursor: pointer;
+    transition: color 0.18s ease, background 0.18s ease;
+  }
+  .prd-rule .annot-icon .studio-ico {
+    width: 12px;
+    height: 12px;
+    color: currentColor;
+  }
+  .prd-rule:hover .annot-icon,
+  .prd-rule.is-hot .annot-icon {
+    color: var(--s-body);
+  }
+  .prd-rule .annot-icon:hover {
+    background: color-mix(in srgb, var(--s-ink) 8%, transparent);
+    color: var(--s-ink);
+  }
+  .prd-rule.is-hot .annot-icon:hover {
+    background: color-mix(in srgb, var(--s-ink) 10%, var(--s-raise));
+  }
+  .prd-rule .annot-icon.is-done,
+  .prd-rule:hover .annot-icon.is-done,
+  .prd-rule.is-hot .annot-icon.is-done {
+    background: transparent;
+    color: var(--s-lime);
+  }
+  .prd-rule .annot-icon.is-done .studio-ico {
+    display: none;
+  }
+  .prd-rule .annot-icon.is-done::after {
+    content: '\E904';
+    font-family: 'buz';
+    font-size: 11px;
+    line-height: 1;
+  }
+  .prd-rule > .prd-mark--inline,
+  .prd-rule > .spec-mark--inline {
+    margin-top: 1px;
+  }
+  .prd-rule p {
+    flex: 1;
+    min-width: 0;
+  }
+  .prd-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .prd-table th,
+  .prd-table td {
+    padding: var(--s-8) 0;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 0.5px solid var(--s-line);
+    word-break: break-word;
+  }
+  .prd-table tr:first-child th,
+  .prd-table tr:first-child td {
+    padding-top: 0;
+  }
+  .prd-table tr:last-child th,
+  .prd-table tr:last-child td {
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+  .prd-table th {
+    width: 92px;
+    padding-right: 10px;
+    font-weight: 700;
+    color: var(--s-ink);
+  }
+  .prd-muted {
+    color: var(--s-dim);
+  }
+  .prd-card .prd-muted + .prd-table {
+    margin-top: var(--s-12);
+  }
+  .spec-table {
+    table-layout: fixed;
+  }
+  .spec-table th {
+    width: 96px;
+    padding-right: var(--s-12);
+    white-space: nowrap;
+  }
+  .spec-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--s-meta);
+    color: var(--s-ink);
+    word-break: break-word;
+  }
+
+  .prd-variants {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s-8);
+    padding-top: var(--s-4);
+  }
+  .prd-variants-kicker {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: var(--s-meta);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-dim);
+  }
+  .prd-variant-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--s-8);
+    padding-top: var(--s-16);
+    border-top: 0.5px dashed var(--s-line);
+  }
+  .prd-variant {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    overflow: visible;
+  }
+  .prd-variant figcaption {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 20px;
+    overflow: visible;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: var(--s-meta);
+    line-height: 20px;
+    letter-spacing: var(--s-track);
+    color: var(--s-body);
+    pointer-events: none;
+  }
+  .prd-frame {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 160px;
+    padding: 36px 10px 12px;
+    overflow: hidden;
+    border-radius: var(--s-radius);
+    background: var(--s-well);
+    box-shadow: 0 0 0 0.5px var(--s-line);
+  }
+  .prd-variant.is-hot .prd-frame {
+    box-shadow: 0 0 0 1.5px var(--s-lime);
+  }
+  .prd-mini-toast {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    max-width: 120px;
+    height: 96px;
+    padding: 12px 8px;
+    border-radius: 20px;
+    background: color-mix(in srgb, var(--s-card) 92%, transparent);
+  }
+  .prd-mini-toast p {
+    margin: 0;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: 13px;
+    line-height: 1.3;
+    color: #e0e0e0;
+    text-align: center;
+  }
+  .prd-mini-dialog {
+    width: 100%;
+    padding: 16px 14px 12px;
+    border-radius: 20px;
+    background: #292929;
+  }
+  .prd-mini-dialog strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: 0.14px;
+  }
+  .prd-mini-dialog p {
+    font-size: 12px;
+    line-height: 1.3;
+    color: #b3b3b3;
+  }
+  .prd-mini-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .prd-mini-actions span {
+    flex: 1;
+    height: 28px;
+    border-radius: 100px;
+    background: #3d3d3d;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .prd-mini-actions span.is-danger {
+    background: #333;
+    color: #ff6c67;
+  }
+  .prd-mini-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 4px;
+  }
+  .prd-mini-nav p {
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .prd-mini-nav span {
+    font-size: 13px;
+    font-weight: 700;
+    color: #4d4d4d;
+  }
+  .prd-mini-field {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #292929;
+    font-size: 12px;
+    line-height: 1.35;
+    color: #808080;
+  }
+
+  .icon {
+    font-family: 'buz';
+    font-style: normal;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── Fixed 375 × 812 phone frame ── */
+  .phone {
+    position: relative;
+    width: 375px;
+    height: 812px;
+    overflow: hidden;
+    border-radius: 50px;
+    background: #1a1a1a;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+    --recede: 0;
+    transition: --recede 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .phone.is-editing {
+    --recede: 1;
+  }
+  .phone.is-sheet-dragging {
+    transition: none;
+  }
+
+  .mask {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: rgba(0, 0, 0, 0.7);
+    pointer-events: none;
+    transition: opacity 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .phone.is-editing .mask {
+    pointer-events: auto;
+  }
+  .phone.is-deleted .mask {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .sheet {
+    position: absolute;
+    top: 44px;
+    left: 0;
+    z-index: 2;
+    width: 375px;
+    height: 768px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 0;
+    transform-origin: 50% 0;
+    transform: translateY(calc(var(--recede) * -10px)) scale(calc(1 - var(--recede) * 40 / 375));
+    border-radius: calc(30px - var(--recede) * 10px) calc(30px - var(--recede) * 10px) 0 0;
+    background: color-mix(in srgb, #1a1a1a calc((1 - var(--recede)) * 100%), #141414);
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .phone.is-deleted .sheet {
+    transform: translateY(100%);
+    pointer-events: none;
+    transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .sheet::-webkit-scrollbar { display: none; }
+
+  .phone.is-editing .sheet {
+    overflow: hidden;
+  }
+  .sheet > .handle {
+    opacity: calc(1 - var(--recede));
+  }
+  .sheet > *:not(.handle) {
+    opacity: calc(1 - var(--recede) * 0.35);
+  }
+
+  .sheet-body {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    padding-top: 30px;
+    padding-bottom: 34px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sheet-body::-webkit-scrollbar { display: none; }
+
+  .edit-peek {
+    position: absolute;
+    top: 34px;
+    left: 0;
+    width: 375px;
+    height: 10px;
+    z-index: 11;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .phone.is-editing .edit-peek {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Handle */
+  .handle {
+    position: relative;
+    z-index: 2;
+    width: 375px;
+    height: 16px;
+    flex-shrink: 0;
+    background: inherit;
+  }
+  .handle-pill {
+    position: absolute;
+    left: 50%;
+    bottom: 2px;
+    transform: translateX(-50%);
+    width: 46px;
+    height: 4px;
+    border-radius: 375px;
+    background: rgba(255, 255, 255, 0.4);
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    flex-shrink: 0;
+  }
+  .avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 375px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: bottom;
+    display: block;
+  }
+  .name-block {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .name-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .ai-icon {
+    width: 24px;
+    height: 24px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .ai-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .char-name {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 24px;
+    line-height: 1.2;
+    letter-spacing: 0.24px;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .char-subtitle {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #b3b3b3;
+    white-space: nowrap;
+  }
+
+  /* CTA */
+  .cta-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    padding: 0 20px;
+    flex-shrink: 0;
+  }
+  .cta-btn {
+    flex: 1 0 0;
+    min-width: 0;
+    height: 72px;
+    position: relative;
+    background: #292929;
+    border: none;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.12s cubic-bezier(0.32, 0.72, 0, 1), background-color 0.12s ease;
+  }
+  .cta-btn:active { transform: scale(0.97); }
+  .cta-btn .icon {
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+    color: #c4f353;
+  }
+  .cta-btn span.label {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1.3;
+    letter-spacing: 0.24px;
+    color: #fff;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  /* List */
+  .list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+    flex-shrink: 0;
+  }
+  .section {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 375px;
+    padding: 0 20px;
+  }
+  .section-title {
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    height: 26px;
+    padding: 0 20px 6px;
+  }
+  .section-title p {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 1.3;
+    letter-spacing: 0.24px;
+    color: #b3b3b3;
+    text-transform: uppercase;
+  }
+
+  .text-card {
+    width: 335px;
+    background: #292929;
+    border-radius: 16px;
+    padding: 14px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.12s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .text-card:active:not(.is-short) { transform: scale(0.985); }
+  .text-card-body {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1.3;
+    letter-spacing: 0.32px;
+    color: #fff;
+    width: 100%;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 6;
+    overflow: hidden;
+    transition: height 0.36s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .text-card.is-short {
+    cursor: default;
+  }
+  .text-card.is-short .show-more,
+  .text-card.is-short .mark-hit--more {
+    display: none;
+  }
+  .text-card.is-short .text-card-body {
+    display: block;
+    -webkit-line-clamp: unset;
+    height: auto;
+    overflow: visible;
+  }
+  .show-more {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1.3;
+    letter-spacing: 0.32px;
+    color: #b3b3b3;
+    white-space: nowrap;
+  }
+  .mark-hit--more {
+    display: inline-flex;
+    align-self: flex-start;
+    margin-top: 0;
+  }
+  .mark-hit--more .spec-mark {
+    top: -6px;
+    right: -12px;
+  }
+
+  .table {
+    width: 100%;
+    background: #292929;
+    border-radius: 16px;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+  }
+  .table > .cell:first-child,
+  .table > .mark-hit:first-child .cell {
+    border-radius: 16px 16px 0 0;
+  }
+  .table > .cell:last-child,
+  .table > .mark-hit:last-child .cell {
+    border-radius: 0 0 16px 16px;
+  }
+  .table > .cell:only-child,
+  .table > .mark-hit:only-child .cell {
+    border-radius: 16px;
+  }
+  .cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 48px;
+    width: 100%;
+    padding: 8px 20px;
+    background: #292929;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.12s ease;
+  }
+  .cell:active { background: #333; }
+  .cell-label {
+    flex: 1 0 0;
+    min-width: 0;
+    padding-right: 10px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 1.3;
+    letter-spacing: 0.16px;
+    color: #fff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cell-label--danger {
+    color: #ff6c67;
+  }
+  .cell-divider {
+    position: absolute;
+    left: 20px;
+    right: 0;
+    bottom: 0;
+    height: 0.5px;
+    background: #4d4d4d;
+  }
+
+  /* Switch — matches Figma Controls/Switch ON */
+  .switch {
+    position: relative;
+    width: 48px;
+    height: 30px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .switch input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    margin: 0;
+    cursor: pointer;
+  }
+  .switch-ui {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 48px;
+    height: 30px;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.2s ease;
+  }
+  .switch-ui img {
+    width: 48px;
+    height: 30px;
+    display: block;
+  }
+  .switch-off {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 48px;
+    height: 30px;
+    border-radius: 15px;
+    background: #3d3d3d;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+  .switch-off::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+    transform: translateX(18px);
+  }
+  .switch input:not(:checked) ~ .switch-ui { opacity: 0; }
+  .switch input:not(:checked) ~ .switch-off { opacity: 1; }
+  .switch input:not(:checked) ~ .switch-off::after { transform: translateX(0); }
+  .studio-switch input:not(:checked) ~ .switch-ui {
+    background: #3d3d3d;
+    opacity: 1;
+  }
+  .studio-switch input:not(:checked) ~ .switch-ui::after {
+    background: #fff;
+    transform: translateX(0);
+  }
+  .studio-switch input:not(:checked) ~ .switch-off {
+    display: none;
+  }
+
+  .feedback-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 335px;
+    height: 48px;
+    padding: 0 24px;
+    background: transparent;
+    border: none;
+    border-radius: 375px;
+    cursor: pointer;
+    color: #b3b3b3;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.12s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.12s ease;
+  }
+  .feedback-btn:active { transform: scale(0.97); opacity: 0.8; }
+  .feedback-btn .icon {
+    font-size: 20px;
+    letter-spacing: 0.2px;
+    color: #b3b3b3;
+  }
+  .feedback-btn span.label {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 1.3;
+    letter-spacing: 0.16px;
+    color: #b3b3b3;
+    max-width: 215px;
+    white-space: nowrap;
+  }
+
+  /* ══ Second sheet — Edit Character (Figma 1757:5184) ══ */
+  .edit-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    visibility: hidden;
+    pointer-events: none;
+    transition: visibility 0s linear 0.42s;
+  }
+  .edit-layer.is-open {
+    visibility: visible;
+    transition: visibility 0s;
+  }
+
+  .edit-mask {
+    position: absolute;
+    top: 44px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: transparent;
+    pointer-events: none;
+  }
+  .edit-layer.is-open .edit-mask {
+    pointer-events: auto;
+  }
+
+  .edit-sheet {
+    position: absolute;
+    top: 44px;
+    left: 0;
+    z-index: 12;
+    width: 375px;
+    height: 768px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translateY(100%);
+    transition: transform 0.42s cubic-bezier(0.32, 0.72, 0, 1);
+    pointer-events: auto;
+  }
+  .edit-layer.is-open .edit-sheet {
+    transform: translateY(0);
+    transition-delay: 0.08s;
+  }
+  .edit-layer:not(.is-open) .edit-sheet {
+    transition-delay: 0s;
+  }
+  .edit-layer.is-open .edit-sheet.is-dragging { transition: none; }
+
+  .edit-panel {
+    width: 375px;
+    height: 768px;
+    background: #1a1a1a;
+    border-radius: 30px 30px 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    overflow: hidden;
+  }
+  .edit-panel > .handle { cursor: grab; touch-action: none; }
+  .edit-sheet.is-dragging .edit-panel > .handle { cursor: grabbing; }
+
+  .handle-pill--dim { background: #3d3d3d; }
+
+  .edit-nav {
+    position: relative;
+    width: 375px;
+    height: 64px;
+    flex-shrink: 0;
+  }
+  .edit-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+    color: #fff;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.12s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.12s ease;
+  }
+  .edit-close:active { transform: scale(0.88); opacity: 0.7; }
+  .edit-title {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    line-height: 1.2;
+    letter-spacing: 0.18px;
+    color: #fff;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .edit-save {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 1.3;
+    letter-spacing: 0.16px;
+    color: #c4f353;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    overflow: visible;
+    padding: 8px;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      transform 0.12s cubic-bezier(0.32, 0.72, 0, 1),
+      opacity 0.12s ease,
+      color 0.18s ease;
+  }
+  .edit-save:active { transform: scale(0.96); opacity: 0.75; }
+  .edit-save:disabled {
+    color: #4d4d4d;
+    cursor: default;
+    pointer-events: none;
+    transform: none;
+    opacity: 1;
+  }
+
+  .edit-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    width: 375px;
+    flex: 1;
+    min-height: 0;
+    margin-top: 10px;
+    padding-bottom: 34px;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    transition: padding-bottom 0.38s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .edit-body::-webkit-scrollbar { display: none; }
+  .phone.is-keyboard .edit-body {
+    padding-bottom: 324px;
+  }
+
+  .edit-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    flex-shrink: 0;
+  }
+  .change-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-width: 60px;
+    height: 32px;
+    padding: 4px 12px;
+    background: #292929;
+    border: none;
+    border-radius: 375px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #fff;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.12s cubic-bezier(0.32, 0.72, 0, 1), background-color 0.12s ease;
+  }
+  .change-avatar:active { transform: scale(0.96); background: #333; }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding: 0 20px;
+    flex-shrink: 0;
+  }
+  .field-title {
+    display: flex;
+    align-items: flex-end;
+    width: 100%;
+    height: 22px;
+    padding: 0 20px 6px;
+  }
+  .field-title p {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 1.3;
+    letter-spacing: 0.24px;
+    color: #b3b3b3;
+    text-transform: uppercase;
+  }
+
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: 50px;
+    padding: 0 20px;
+    background: #000;
+    border: 0.5px solid #292929;
+    border-radius: 16px;
+    cursor: text;
+    transition: border-color 0.18s ease;
+  }
+  .input-row.is-filled {
+    padding-right: 12px;
+  }
+  .input-row:focus-within {
+    border-color: #4d4d4d;
+  }
+  .input-row input {
+    flex: 1 0 0;
+    min-width: 0;
+    height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    caret-color: #c4f353;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1.3;
+    letter-spacing: 0.32px;
+    color: #fff;
+  }
+  .input-row input::placeholder {
+    color: #808080;
+  }
+  .input-clear {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 0;
+    height: 18px;
+    padding: 0;
+    overflow: hidden;
+    font-size: 18px;
+    color: #b3b3b3;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.8);
+    pointer-events: none;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      opacity 0.16s cubic-bezier(0.32, 0.72, 0, 1),
+      transform 0.16s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .input-row.is-filled:focus-within .input-clear {
+    width: 18px;
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    width: 100%;
+    flex-shrink: 0;
+  }
+  .textarea-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    width: 335px;
+  }
+  .textarea-box {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    width: 335px;
+    padding: 16px 20px;
+    background: #000;
+    border: 0.5px solid #292929;
+    border-radius: 16px;
+    overflow: visible;
+    cursor: text;
+    transition: border-color 0.18s ease, box-shadow 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .textarea-box.is-height-tween {
+    overflow: hidden;
+    transition:
+      height var(--box-tween, 0.4s) cubic-bezier(0.32, 0.72, 0, 1),
+      border-color var(--box-tween, 0.4s) cubic-bezier(0.32, 0.72, 0, 1),
+      box-shadow var(--box-tween, 0.4s) cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .textarea-box:focus-within {
+    border-color: #4d4d4d;
+  }
+  .textarea-box textarea {
+    width: 100%;
+    flex-shrink: 0;
+    min-height: 62px;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    overflow: hidden;
+    caret-color: #c4f353;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1.3;
+    letter-spacing: 0.32px;
+    color: #fff;
+  }
+  .textarea-box textarea::placeholder { color: #808080; }
+
+  .ai-refine {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    min-width: 60px;
+    max-height: 0;
+    margin-top: 0;
+    padding: 0 8px;
+    overflow: hidden;
+    opacity: 0;
+    transform: scale(0.82);
+    transform-origin: left center;
+    background: #1a1a1a;
+    border: none;
+    border-radius: 375px;
+    cursor: pointer;
+    flex-shrink: 0;
+    pointer-events: none;
+    -webkit-tap-highlight-color: transparent;
+    transition:
+      opacity 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .ai-refine.is-visible {
+    max-height: 32px;
+    margin-top: 10px;
+    padding: 4px 8px;
+    opacity: 1;
+    transform: scale(1);
+    pointer-events: auto;
+  }
+  .ai-refine.is-visible:active {
+    transform: scale(0.96);
+  }
+  .ai-refine .icon,
+  .ai-refine .label {
+    background-image: linear-gradient(135deg, #63c0e8 0%, #7870de 50%, #d19c5a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .ai-refine .icon {
+    font-size: 14px;
+    letter-spacing: 0.14px;
+    width: 14px;
+    height: 14px;
+  }
+  .ai-refine .label {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1.3;
+    letter-spacing: 0.24px;
+    white-space: nowrap;
+  }
+  .ai-refine.is-busy {
+    pointer-events: none;
+  }
+  .ai-refine.is-busy .icon {
+    animation: refine-icon-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes refine-icon-pulse {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    40% { transform: rotate(-12deg) scale(1.08); }
+    70% { transform: rotate(8deg) scale(1.04); }
+  }
+
+  .refine-stage {
+    position: relative;
+    display: none;
+    width: 100%;
+    margin: 0;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1.3;
+    letter-spacing: 0.32px;
+    color: #fff;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+    overflow: hidden;
+    transition: opacity 0.24s cubic-bezier(0.32, 0.72, 0, 1), transform 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .refine-stage.is-exiting {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  .textarea-box.is-staging {
+    cursor: default;
+    border-color: #7870de;
+    box-shadow: 0 0 0 1px rgba(120, 112, 222, 0.28);
+  }
+  .textarea-box.is-staging .refine-stage {
+    display: block;
+  }
+  .textarea-box.is-staging.is-scanning,
+  .textarea-box.is-staging.is-boning,
+  .textarea-box.is-v4-run {
+    border-color: #7870de;
+    box-shadow: 0 0 0 1px rgba(120, 112, 222, 0.28);
+  }
+  .textarea-box.is-v4-run .refine-stage.is-exiting {
+    transform: none;
+  }
+  .refine-scan-copy {
+    display: block;
+  }
+  .textarea-box.is-scanning .refine-scan-copy {
+    background-image: linear-gradient(
+      180deg,
+      #4a4860 0,
+      #4a4860 var(--scan-y, 0px),
+      #c8d0f4 calc(var(--scan-y, 0px) + 10px),
+      #fff calc(var(--scan-y, 0px) + 20px),
+      #fff 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+  .refine-scan-beam {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 2px;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    will-change: transform, opacity;
+    background: linear-gradient(
+      90deg,
+      rgba(99, 192, 232, 0) 0%,
+      rgba(99, 192, 232, 0.1) 6%,
+      rgba(99, 192, 232, 0.55) 14%,
+      #63c0e8 28%,
+      #6d98e3 50%,
+      #7870de 72%,
+      rgba(120, 112, 222, 0.55) 86%,
+      rgba(120, 112, 222, 0.1) 94%,
+      rgba(120, 112, 222, 0) 100%
+    );
+  }
+  .refine-scan-beam::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 2px;
+    height: 7px;
+    background: linear-gradient(
+      90deg,
+      rgba(99, 192, 232, 0) 0%,
+      rgba(99, 192, 232, 0.1) 28%,
+      rgba(120, 112, 222, 0.12) 72%,
+      rgba(120, 112, 222, 0) 100%
+    );
+    -webkit-mask-image: linear-gradient(180deg, #000, transparent);
+    mask-image: linear-gradient(180deg, #000, transparent);
+    pointer-events: none;
+  }
+  .textarea-box.is-scanning .ai-refine-hit .prd-mark,
+  .textarea-box.is-scanning .ai-refine-hit .spec-mark,
+  .textarea-box.is-boning .ai-refine-hit .prd-mark,
+  .textarea-box.is-boning .ai-refine-hit .spec-mark,
+  .textarea-box.is-v4-run .ai-refine-hit .prd-mark,
+  .textarea-box.is-v4-run .ai-refine-hit .spec-mark {
+    opacity: 0;
+  }
+  .refine-bones {
+    display: none;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .textarea-box.is-boning .refine-bones,
+  .refine-bones.is-exiting {
+    display: flex;
+  }
+  .refine-bones.is-in {
+    opacity: 1;
+  }
+  .refine-bones.is-exiting {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    top: 16px;
+    z-index: 3;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .refine-bone {
+    display: block;
+    flex-shrink: 0;
+    height: 16px;
+    max-width: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, rgba(99, 192, 232, 0.14), rgba(120, 112, 222, 0.2));
+    opacity: 0.52;
+    animation: refine-bone-breathe 2.6s cubic-bezier(0.37, 0, 0.63, 1) infinite;
+  }
+  @keyframes refine-bone-breathe {
+    0%, 100% { opacity: 0.52; }
+    50% { opacity: 1; }
+  }
+  .refine-bones-kicker {
+    margin: 8px 0 0;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1.3;
+    letter-spacing: 0.24px;
+    background-image: linear-gradient(135deg, #63c0e8 0%, #7870de 50%, #d19c5a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .textarea-box.is-v4-reveal textarea {
+    animation: v4-text-in 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  @keyframes v4-text-in {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .textarea-box.is-staging textarea {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1px;
+    height: 1px;
+    min-height: 0;
+    padding: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .textarea-box.is-holding {
+    border-color: #4d4d4d;
+  }
+  .refine-badge {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    z-index: 2;
+    padding: 2px 8px;
+    border-radius: 375px;
+    background: #1a1a1a;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    line-height: 1.3;
+    letter-spacing: 0.22px;
+    color: #b3b3b3;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition:
+      opacity 0.18s cubic-bezier(0.32, 0.72, 0, 1),
+      transform 0.18s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .textarea-box.is-holding .refine-badge {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .refine-stage mark {
+    color: inherit;
+    font: inherit;
+    border-radius: 4px;
+    padding: 0 2px;
+    margin: 0 -2px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  .refine-read {
+    background: transparent;
+    box-shadow: inset 0 0 0 0 transparent;
+    transition:
+      background 0.4s cubic-bezier(0.32, 0.72, 0, 1),
+      box-shadow 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .refine-read.is-on {
+    background: linear-gradient(135deg, rgba(99, 192, 232, 0.28) 0%, rgba(120, 112, 222, 0.26) 50%, rgba(209, 156, 90, 0.2) 100%);
+    box-shadow: inset 0 0 0 1px rgba(120, 112, 222, 0.22);
+  }
+  .refine-chunk {
+    opacity: 0;
+    transition: opacity 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .refine-chunk.is-in {
+    opacity: 1;
+  }
+  .refine-add {
+    background: linear-gradient(135deg, rgba(99, 192, 232, 0.22) 0%, rgba(120, 112, 222, 0.2) 50%, rgba(209, 156, 90, 0.16) 100%);
+    transition: background 0.7s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .refine-add.is-settled {
+    background: transparent;
+  }
+  .ai-refine-hit {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    align-self: flex-start;
+    min-height: 0;
+  }
+  .ai-refine-hit .prd-mark,
+  .ai-refine-hit .spec-mark {
+    top: -6px;
+    right: -6px;
+  }
+  .refine-status {
+    display: none;
+    width: 100%;
+    margin-top: 10px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .textarea-box.is-status-on .refine-status {
+    display: flex;
+  }
+  .textarea-box.is-status-on .ai-refine-hit {
+    display: none;
+  }
+  .refine-status-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    min-height: 16px;
+  }
+  .refine-status-icon {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+    letter-spacing: 0.14px;
+    background-image: linear-gradient(135deg, #63c0e8 0%, #7870de 50%, #d19c5a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: refine-icon-pulse 1.2s ease-in-out infinite;
+  }
+  .refine-status-copy {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1.3;
+    letter-spacing: 0.24px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background-image: linear-gradient(135deg, #63c0e8 0%, #7870de 50%, #d19c5a 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .refine-status-step {
+    flex-shrink: 0;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 1.3;
+    letter-spacing: 0.24px;
+    color: #b3b3b3;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+  .refine-status-track {
+    display: block;
+    width: 100%;
+    height: 4px;
+    border-radius: 375px;
+    background: #1a1a1a;
+    overflow: hidden;
+  }
+  .refine-status-fill {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 375px;
+    background: linear-gradient(135deg, #63c0e8 0%, #7870de 50%, #d19c5a 100%);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  .counter {
+    width: 100%;
+    padding: 0 20px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 1.3;
+    letter-spacing: 0.24px;
+    color: #b3b3b3;
+    text-align: right;
+  }
+
+  .home-indicator {
+    position: absolute;
+    left: 50%;
+    bottom: 8px;
+    transform: translateX(-50%);
+    width: 134px;
+    height: 5px;
+    border-radius: 100px;
+    background: #fff;
+  }
+
+  /* ══ Refine with AI dialog (Figma 1694:19310) ══ */
+  .dialog-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    pointer-events: none;
+    transition: visibility 0s linear 0.28s;
+  }
+  .dialog-layer.is-open {
+    visibility: visible;
+    pointer-events: auto;
+    transition: visibility 0s;
+  }
+
+  .dialog-mask {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    opacity: 0;
+    transition: opacity 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .dialog-layer.is-open .dialog-mask { opacity: 1; }
+
+  .dialog {
+    position: relative;
+    z-index: 1;
+    width: 335px;
+    background: #1f1f1f;
+    border-radius: 40px;
+    padding-top: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translateY(10px) scale(0.96);
+    opacity: 0;
+    transition:
+      transform 0.28s cubic-bezier(0.32, 0.72, 0, 1),
+      opacity 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .dialog-layer.is-open .dialog {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+
+  .dialog-text {
+    width: 100%;
+    max-height: 295px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+    overflow: hidden;
+  }
+  .dialog-title {
+    width: 100%;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 18px;
+    line-height: 1.2;
+    letter-spacing: 0.18px;
+    color: #fff;
+  }
+  .dialog-body {
+    width: 100%;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #b3b3b3;
+  }
+
+  .dialog-actions {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 20px 20px;
+  }
+  .dialog-btn {
+    flex: 1 0 0;
+    min-width: 80px;
+    height: 44px;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    border-radius: 375px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 1.3;
+    letter-spacing: 0.16px;
+    text-align: center;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.12s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.12s ease;
+  }
+  .dialog-btn:active { transform: scale(0.97); }
+  .dialog-btn--cancel {
+    background: #333;
+    color: #fff;
+  }
+  .dialog-btn--refine {
+    background: #fff;
+    color: #000;
+  }
+  .dialog-btn--danger {
+    background: #333;
+    color: #ff6c67;
+  }
+
+  /* ══ Refine toast (Figma 1694:19871) ══ */
+  @property --rotate-transform {
+    syntax: '<angle>';
+    initial-value: 0rad;
+    inherits: false;
+  }
+
+  .refine-toast-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 21;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .refine-toast-scale {
+    position: relative;
+    will-change: transform;
+    transform: translate3d(0, 8px, 0);
+    transition: transform 0.22s cubic-bezier(0.25, 0.72, 0.22, 1);
+  }
+  .refine-toast-layer.is-open .refine-toast-scale {
+    transform: translate3d(0, 0, 0);
+  }
+
+  .refine-toast {
+    position: relative;
+    width: 150px;
+    height: 132px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 24px;
+    overflow: hidden;
+  }
+  .refine-toast::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    background-color: rgba(40, 40, 40, 0.78);
+    backdrop-filter: blur(50px);
+    -webkit-backdrop-filter: blur(50px);
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 0.22s cubic-bezier(0.25, 0.72, 0.22, 1);
+  }
+  .refine-toast-layer.is-open .refine-toast::before {
+    opacity: 1;
+  }
+  .refine-toast > * {
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.22s cubic-bezier(0.25, 0.72, 0.22, 1);
+  }
+  .refine-toast-layer.is-open .refine-toast > * {
+    opacity: 1;
+  }
+
+  .refine-toast-icon {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+
+  .toast-glow,
+  .toast-wand,
+  .toast-spark {
+    position: absolute;
+    display: block;
+    transform-origin: center center;
+  }
+
+  .toast-glow {
+    left: 7px;
+    top: 7px;
+    width: 36px;
+    height: 36px;
+    opacity: 0;
+    animation:
+      kf_1694_20164_opacity_0 2s linear infinite,
+      kf_1694_20164_scale_0 2s linear infinite;
+  }
+
+  .toast-wand {
+    left: 7.227px;
+    top: 13.052px;
+    width: 29.443px;
+    height: 30.286px;
+    transform: rotate(var(--rotate-transform, 0rad));
+    animation: kf_1694_20171_rotate_0 2s linear infinite;
+  }
+
+  .toast-spark--s {
+    left: 27.1px;
+    top: 32.059px;
+    width: 8.008px;
+    height: 8.057px;
+    opacity: 0;
+    transform: rotate(var(--rotate-transform, 0rad));
+    animation:
+      kf_1694_20193_opacity_0 2s linear infinite,
+      kf_1694_20193_rotate_0 2s linear infinite,
+      kf_1694_20193_scale_0 2s linear infinite;
+  }
+
+  .toast-spark--m {
+    left: 34.717px;
+    top: 20.242px;
+    width: 10.547px;
+    height: 10.596px;
+    opacity: 0;
+    transform: rotate(var(--rotate-transform, 0rad));
+    animation:
+      kf_1694_20215_opacity_0 2s linear infinite,
+      kf_1694_20215_rotate_0 2s linear infinite,
+      kf_1694_20215_scale_0 2s linear infinite;
+  }
+
+  .toast-spark--l {
+    left: 6.934px;
+    top: 7.059px;
+    width: 14.697px;
+    height: 14.697px;
+    opacity: 0;
+    transform: rotate(var(--rotate-transform, 0rad));
+    animation:
+      kf_1694_20237_opacity_0 2s linear infinite,
+      kf_1694_20237_rotate_0 2s linear infinite,
+      kf_1694_20237_scale_0 2s linear infinite;
+  }
+
+  .refine-toast-copy,
+  .refine-toast-pct {
+    width: 100%;
+    margin: 0;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #e0e0e0;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .refine-toast-pct {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  @keyframes kf_1694_20164_opacity_0 {
+    0% { opacity: 0; }
+    10% { animation-timing-function: ease-in-out; opacity: 0; }
+    30% { animation-timing-function: ease-in-out; opacity: 1; }
+    50% { animation-timing-function: ease-in-out; opacity: 0.5; }
+    65% { animation-timing-function: ease-in-out; opacity: 0.85; }
+    85% { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes kf_1694_20164_scale_0 {
+    0% { scale: 0.6 0.6; }
+    10% { animation-timing-function: ease-in-out; scale: 0.6 0.6; }
+    30% { animation-timing-function: ease-in-out; scale: 1 1; }
+    50% { animation-timing-function: ease-in-out; scale: 0.85 0.85; }
+    65% { animation-timing-function: ease-in-out; scale: 1.1 1.1; }
+    85% { scale: 0.6 0.6; }
+    100% { scale: 0.6 0.6; }
+  }
+  @keyframes kf_1694_20171_rotate_0 {
+    0% { animation-timing-function: ease-out; --rotate-transform: 0rad; }
+    6% { animation-timing-function: ease-in-out; --rotate-transform: -0.244rad; }
+    14% { animation-timing-function: ease-out; --rotate-transform: 0.105rad; }
+    21% { --rotate-transform: 0rad; }
+    100% { --rotate-transform: 0rad; }
+  }
+  @keyframes kf_1694_20193_opacity_0 {
+    0% { opacity: 0; }
+    22.5% { animation-timing-function: ease-out; opacity: 0; }
+    32.5% { animation-timing-function: ease-in-out; opacity: 1; }
+    51.25% { animation-timing-function: ease-in-out; opacity: 0.6; }
+    70% { animation-timing-function: ease-in; opacity: 1; }
+    80% { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes kf_1694_20193_rotate_0 {
+    0% { --rotate-transform: 0rad; }
+    22.5% { animation-timing-function: ease-in-out; --rotate-transform: 0rad; }
+    80% { animation-timing-function: step-end; --rotate-transform: -1.047rad; }
+    100% { --rotate-transform: 0rad; }
+  }
+  @keyframes kf_1694_20193_scale_0 {
+    0% { scale: 0 0; }
+    22.5% { animation-timing-function: linear(0, 0.0242, 0.0871, 0.1757, 0.2793, 0.3892, 0.4987, 0.6028, 0.6982, 0.7827, 0.8552, 0.9156, 0.9641, 1.0017, 1.0295, 1.0486, 1.0606, 1.0666, 1.068, 1.0659, 1.0613, 1.0551, 1.048, 1.0405, 1.0331, 1.026, 1.0197, 1.014, 1.0092, 1.0052, 1.002, 0.9996, 0.9978, 0.9965, 0.9958, 0.9954, 0.9954, 0.9955, 0.9959, 0.9963, 0.9968, 0.9973, 0.9978, 0.9983, 0.9987, 0.9991, 0.9994, 0.9997, 0.9999, 1.0001, 1.0002); scale: 0 0; }
+    32.5% { animation-timing-function: ease-in-out; scale: 1 1; }
+    51.25% { animation-timing-function: ease-in-out; scale: 0.7 0.7; }
+    70% { animation-timing-function: ease-in; scale: 1 1; }
+    80% { scale: 0 0; }
+    100% { scale: 0 0; }
+  }
+  @keyframes kf_1694_20215_opacity_0 {
+    0% { opacity: 0; }
+    17.5% { animation-timing-function: ease-out; opacity: 0; }
+    27.5% { animation-timing-function: ease-in-out; opacity: 1; }
+    46.25% { animation-timing-function: ease-in-out; opacity: 0.6; }
+    65% { animation-timing-function: ease-in; opacity: 1; }
+    75% { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes kf_1694_20215_rotate_0 {
+    0% { --rotate-transform: 0rad; }
+    17.5% { animation-timing-function: ease-in-out; --rotate-transform: 0rad; }
+    75% { animation-timing-function: step-end; --rotate-transform: 1.047rad; }
+    100% { --rotate-transform: 0rad; }
+  }
+  @keyframes kf_1694_20215_scale_0 {
+    0% { scale: 0 0; }
+    17.5% { animation-timing-function: linear(0, 0.0242, 0.0871, 0.1757, 0.2793, 0.3892, 0.4987, 0.6028, 0.6982, 0.7827, 0.8552, 0.9156, 0.9641, 1.0017, 1.0295, 1.0486, 1.0606, 1.0666, 1.068, 1.0659, 1.0613, 1.0551, 1.048, 1.0405, 1.0331, 1.026, 1.0197, 1.014, 1.0092, 1.0052, 1.002, 0.9996, 0.9978, 0.9965, 0.9958, 0.9954, 0.9954, 0.9955, 0.9959, 0.9963, 0.9968, 0.9973, 0.9978, 0.9983, 0.9987, 0.9991, 0.9994, 0.9997, 0.9999, 1.0001, 1.0002); scale: 0 0; }
+    27.5% { animation-timing-function: ease-in-out; scale: 1 1; }
+    46.25% { animation-timing-function: ease-in-out; scale: 0.7 0.7; }
+    65% { animation-timing-function: ease-in; scale: 1 1; }
+    75% { scale: 0 0; }
+    100% { scale: 0 0; }
+  }
+  @keyframes kf_1694_20237_opacity_0 {
+    0% { opacity: 0; }
+    12.5% { animation-timing-function: ease-out; opacity: 0; }
+    22.5% { animation-timing-function: ease-in-out; opacity: 1; }
+    41.25% { animation-timing-function: ease-in-out; opacity: 0.6; }
+    60% { animation-timing-function: ease-in; opacity: 1; }
+    70% { opacity: 0; }
+    100% { opacity: 0; }
+  }
+  @keyframes kf_1694_20237_rotate_0 {
+    0% { --rotate-transform: 0rad; }
+    12.5% { animation-timing-function: ease-in-out; --rotate-transform: 0rad; }
+    70% { animation-timing-function: step-end; --rotate-transform: -1.047rad; }
+    100% { --rotate-transform: 0rad; }
+  }
+  @keyframes kf_1694_20237_scale_0 {
+    0% { scale: 0 0; }
+    12.5% { animation-timing-function: linear(0, 0.0242, 0.0871, 0.1757, 0.2793, 0.3892, 0.4987, 0.6028, 0.6982, 0.7827, 0.8552, 0.9156, 0.9641, 1.0017, 1.0295, 1.0486, 1.0606, 1.0666, 1.068, 1.0659, 1.0613, 1.0551, 1.048, 1.0405, 1.0331, 1.026, 1.0197, 1.014, 1.0092, 1.0052, 1.002, 0.9996, 0.9978, 0.9965, 0.9958, 0.9954, 0.9954, 0.9955, 0.9959, 0.9963, 0.9968, 0.9973, 0.9978, 0.9983, 0.9987, 0.9991, 0.9994, 0.9997, 0.9999, 1.0001, 1.0002); scale: 0 0; }
+    22.5% { animation-timing-function: ease-in-out; scale: 1 1; }
+    41.25% { animation-timing-function: ease-in-out; scale: 0.7 0.7; }
+    60% { animation-timing-function: ease-in; scale: 1 1; }
+    70% { scale: 0 0; }
+    100% { scale: 0 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .refine-toast-layer .toast-glow,
+    .refine-toast-layer .toast-wand,
+    .refine-toast-layer .toast-spark {
+      animation: none;
+      opacity: 1;
+      scale: 1;
+      --rotate-transform: 0rad;
+    }
+    .text-card-body { transition: none; }
+    .ai-refine { transition: none; }
+    .ai-refine.is-busy .icon { animation: none; }
+    .refine-stage,
+    .refine-read,
+    .refine-chunk,
+    .refine-add,
+    .refine-badge,
+    .refine-status-fill { transition: none !important; }
+    .refine-status-icon { animation: none; }
+    .refine-scan-beam,
+    .refine-bone,
+    .refine-bones { animation: none !important; }
+    .textarea-box.is-height-tween { transition: none !important; }
+    .phone,
+    .sheet,
+    .edit-sheet,
+    .dialog,
+    .dialog-mask,
+    .refine-toast-scale,
+    .done-toast-scale,
+    .kb,
+    .edit-body,
+    .annot-col,
+    .annot-inner,
+    .prd-panel,
+    .spec-panel,
+    .prd-mark,
+    .spec-mark,
+    .annot-md-clip,
+    .annot-md-clip > .annot-md,
+    .studio-explore-slot,
+    .studio-group--explore,
+    .studio-annot-slot,
+    .studio-annot-kinds,
+    .annot-thumb,
+    .annot-check,
+    .studio-seg-thumb,
+    .studio-switch .switch-ui,
+    .studio-switch .switch-ui::after {
+      transition: none !important;
+    }
+  }
+
+  /* ══ Success toast (Figma 1694:20254) ══ */
+  .done-toast-scale {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 22;
+    pointer-events: none;
+    visibility: hidden;
+    will-change: transform;
+    transform: translate3d(-50%, calc(-50% + 8px), 0);
+    transition: transform 0.22s cubic-bezier(0.25, 0.72, 0.22, 1);
+  }
+  .done-toast-scale.is-on {
+    transform: translate3d(-50%, -50%, 0);
+  }
+  .done-toast {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    height: 44px;
+    padding: 10px 20px;
+    border-radius: 24px;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .done-toast::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    background-color: rgba(40, 40, 40, 0.78);
+    backdrop-filter: blur(50px);
+    -webkit-backdrop-filter: blur(50px);
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 0.22s cubic-bezier(0.25, 0.72, 0.22, 1);
+  }
+  .done-toast-scale.is-on .done-toast::before {
+    opacity: 1;
+  }
+  .done-toast > * {
+    position: relative;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.22s cubic-bezier(0.25, 0.72, 0.22, 1);
+  }
+  .done-toast-scale.is-on .done-toast > * {
+    opacity: 1;
+  }
+  .done-toast-icon {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+    color: #fff;
+  }
+  .done-toast-text {
+    max-width: 179px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.3;
+    letter-spacing: 0.14px;
+    color: #e0e0e0;
+  }
+
+  /* ══ iOS keyboard (Figma 1180:21430) ══ */
+  .kb {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    z-index: 18;
+    width: 375px;
+    height: 310px;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(100%);
+    transition:
+      transform 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s linear 0.38s;
+  }
+  .phone.is-keyboard .kb {
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+    transition:
+      transform 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+      visibility 0s;
+  }
+  .kb-art {
+    position: absolute;
+    inset: 0;
+    width: 375px;
+    height: 310px;
+    display: block;
+    pointer-events: none;
+    user-select: none;
+  }
+  .kb-hits {
+    position: absolute;
+    inset: 0;
+  }
+  .kb-suggest {
+    position: absolute;
+    top: 22px;
+    left: 0;
+    width: 375px;
+    height: 24px;
+    display: flex;
+  }
+  .kb-rows {
+    position: absolute;
+    top: 45.71px;
+    left: 6.22px;
+    width: 362.56px;
+    height: 191.23px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .kb-row {
+    display: flex;
+    align-items: stretch;
+    height: 40.11px;
+    width: 100%;
+  }
+  .kb-row--letters {
+    justify-content: space-between;
+  }
+  .kb-row--mid {
+    justify-content: center;
+    gap: 5.6px;
+  }
+  .kb-row--bottom {
+    justify-content: space-between;
+  }
+  .kb-key {
+    height: 40.11px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    border-radius: 5.5px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .kb-key:active { background: rgba(0, 0, 0, 0.12); }
+  .kb-key--letter { width: 31.22px; }
+  .kb-key--mid { width: 31.16px; }
+  .kb-key--zx { width: 31.45px; }
+  .kb-key--mod { width: 41.98px; }
+  .kb-key--123 { width: 86.44px; }
+  .kb-key--space { width: 178.17px; }
+  .kb-key--return { width: 86.75px; }
+  .kb-row--shift {
+    justify-content: space-between;
+  }
+  .kb-row--shift .kb-zx {
+    display: flex;
+    gap: 5.6px;
+    width: 253.73px;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<div class="studio is-annot is-prd" id="studio" data-explore="v1">
+  <a class="studio-exit" href="../index.html">
+    <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    <span class="studio-exit-label">设计与产品交付</span>
+  </a>
+  <aside class="studio-rail" aria-label="原型控制">
+    <div class="studio-group studio-group--annot">
+      <div class="studio-wifi">
+        <p class="studio-wifi-title" id="annot-power-label">PRD 与标注</p>
+        <label class="switch studio-switch">
+          <input type="checkbox" id="annot-power" checked aria-labelledby="annot-power-label" aria-controls="annot-kind">
+          <span class="switch-ui"><img src="assets/ai_buz/switch.svg" alt=""></span>
+          <span class="switch-off"></span>
+        </label>
+      </div>
+      <div class="studio-annot-slot">
+        <div class="studio-annot-kinds" id="annot-kind" role="radiogroup" aria-label="交付物类型" aria-hidden="false">
+          <div class="studio-card studio-menu">
+            <div class="annot-thumb" aria-hidden="true"></div>
+            <button type="button" class="annot-mode is-on" data-annot-mode="prd" role="radio" aria-checked="true" aria-controls="annot-col">
+              PRD
+              <span class="annot-check" aria-hidden="true">&#xE904;</span>
+            </button>
+            <button type="button" class="annot-mode" data-annot-mode="spec" role="radio" aria-checked="false" aria-controls="annot-col">
+              交互与动效标注
+              <span class="annot-check" aria-hidden="true">&#xE904;</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="studio-workspace-stack">
+    <button type="button" class="studio-workspace" id="explore-gate" aria-label="打开设计探索" aria-expanded="false" aria-controls="explore-group">
+      <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>
+      <span class="studio-workspace-title">设计探索</span>
+    </button>
+    <div class="studio-explore-slot">
+    <div class="studio-group studio-group--explore" id="explore-group" aria-hidden="true">
+      <p class="studio-explore-heading">概念探索</p>
+      <div class="studio-seg" role="radiogroup" aria-label="设计版本">
+        <span class="studio-seg-thumb" aria-hidden="true"></span>
+        <button type="button" class="explore-pill is-on" data-explore="v1" role="radio" aria-checked="true" aria-label="V1 普通路径">V1</button>
+        <button type="button" class="explore-pill" data-explore="v2" role="radio" aria-checked="false" aria-label="V2 扫描与骨架">V2</button>
+        <button type="button" class="explore-pill" data-explore="v3" role="radio" aria-checked="false" aria-label="V3 底部状态条">V3</button>
+        <button type="button" class="explore-pill" data-explore="v4" role="radio" aria-checked="false" aria-label="V4 框内重写">V4</button>
+      </div>
+      <p class="studio-caption" id="explore-hint">V1 · 普通路径 · Working toast</p>
+    </div>
+    </div>
+    </div>
+  </aside>
+
+  <div class="studio-board">
+  <div class="studio-hero">
+  <div class="studio-stage">
+<div class="phone" id="phone">
+  <div class="mask" data-close-edit></div>
+  <button type="button" class="edit-peek" data-close-edit data-hot="3" aria-label="Close edit"></button>
+
+  <div class="sheet" id="profile-sheet">
+    <div class="handle">
+      <div class="handle-pill"></div>
+    </div>
+
+    <div class="sheet-body">
+    <div class="header">
+      <div class="avatar">
+        <img src="assets/ai_buz/avatar.png" alt="Elyn Shadowwind">
+      </div>
+      <div class="name-block">
+        <div class="name-row">
+          <div class="ai-icon">
+            <img src="assets/ai_buz/ai_icon.png" alt="">
+          </div>
+          <p class="char-name">Elyn Shadowwind</p>
+        </div>
+        <p class="char-subtitle">AI Character</p>
+      </div>
+    </div>
+
+    <div class="cta-row">
+      <span class="mark-hit mark-hit--cta" data-hot="1">
+      <button type="button" class="cta-btn" id="edit-character-btn">
+        <span class="icon" aria-hidden="true">&#xE91C;</span>
+        <span class="label">Edit Character</span>
+      </button>
+      <span class="prd-mark spec-mark" aria-hidden="true">1</span>
+      </span>
+      <button type="button" class="cta-btn">
+        <span class="icon" aria-hidden="true">&#xE917;</span>
+        <span class="label">Message</span>
+      </button>
+    </div>
+
+    <div class="list">
+      <div class="section">
+        <div class="section-title"><p>Description</p></div>
+        <button type="button" class="text-card" data-toggle-more>
+          <p class="text-card-body">Elyn Shadowwind is a silver-haired elven ranger who wanders the Moonlight Forest, where the leaves shimmer with silver light. Her amber eyes are sharp and watchful. A scar from her left brow to her cheekbone speaks of a night when her noble house was lost. She wears muted greens and browns, a wool cloak, and carries a bow with raven-fletched arrows. At her hips hang twin curved blades named Whisper and Wail. She practices archery at dawn and climbs to scan the horizon at dusk.</p>
+          <span class="mark-hit mark-hit--more" data-hot="5">
+            <p class="show-more">Show more</p>
+            <span class="spec-mark" aria-hidden="true">5</span>
+          </span>
+        </button>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><p>speaking style</p></div>
+        <button type="button" class="text-card" data-toggle-more>
+          <p class="text-card-body">Elyn speaks in a quiet, measured tone—calm and watchful. Her words are deliberate, carrying observation rather than opinion. She rarely raises her voice, but when she does, it cuts through like an arrow.</p>
+          <span class="mark-hit mark-hit--more" data-hot="5">
+            <p class="show-more">Show more</p>
+            <span class="spec-mark" aria-hidden="true">5</span>
+          </span>
+        </button>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><p>Notification</p></div>
+        <div class="table">
+          <div class="cell">
+            <p class="cell-label">Mute Voice Auto-play</p>
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="switch-ui"><img src="assets/ai_buz/switch.svg" alt=""></span>
+              <span class="switch-off"></span>
+            </label>
+            <div class="cell-divider"></div>
+          </div>
+          <div class="cell">
+            <p class="cell-label">Mute Notification</p>
+            <label class="switch">
+              <input type="checkbox" checked>
+              <span class="switch-ui"><img src="assets/ai_buz/switch.svg" alt=""></span>
+              <span class="switch-off"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="table">
+          <button type="button" class="cell">
+            <p class="cell-label">Clear Chat History</p>
+          </button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="table">
+          <button type="button" class="cell">
+            <p class="cell-label cell-label--danger">Remove from Chat List</p>
+            <div class="cell-divider"></div>
+          </button>
+          <span class="mark-hit mark-hit--fill" data-hot="4">
+          <button type="button" class="cell" id="delete-character-btn">
+            <p class="cell-label cell-label--danger">Delete Character</p>
+          </button>
+          <span class="prd-mark" aria-hidden="true">4</span>
+          </span>
+        </div>
+      </div>
+
+      <button type="button" class="feedback-btn">
+        <span class="icon" aria-hidden="true">&#xE911;</span>
+        <span class="label">Give Feedback</span>
+      </button>
+    </div>
+    </div>
+  </div>
+
+  <div class="edit-layer" id="edit-layer">
+    <div class="edit-mask" data-close-edit></div>
+
+    <div class="edit-sheet" id="edit-sheet">
+      <div class="edit-panel">
+        <div class="handle">
+          <div class="handle-pill handle-pill--dim"></div>
+        </div>
+
+        <div class="edit-nav">
+          <span class="mark-hit mark-hit--close" data-hot="3">
+          <button type="button" class="edit-close icon" data-close-edit aria-label="Close">&#xE905;</button>
+          </span>
+          <p class="edit-title">Edit Character</p>
+          <span class="mark-hit mark-hit--save" data-hot="3">
+          <button type="button" class="edit-save" id="edit-save">Save</button>
+          <span class="prd-mark" aria-hidden="true">3</span>
+          </span>
+        </div>
+
+        <div class="edit-body" id="edit-body">
+          <div class="edit-header">
+            <div class="avatar">
+              <img src="assets/ai_buz/avatar.png" alt="Elyn Shadowwind">
+            </div>
+            <button type="button" class="change-avatar">Change Avatar</button>
+          </div>
+
+          <div class="field">
+            <div class="field-title"><p>Name</p></div>
+            <div class="input-row is-filled" id="name-field">
+              <input type="text" id="edit-name" value="Elyn Shadowwind" placeholder="Enter your character's name" autocomplete="off" spellcheck="false" inputmode="none" enterkeyhint="done">
+              <button type="button" class="input-clear icon" data-clear="edit-name" aria-label="Clear">&#xE90B;</button>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <div class="field">
+              <div class="field-title"><p>Description</p></div>
+              <div class="textarea-wrap">
+                <div class="mark-hit mark-hit--fill" data-hot="7">
+                <div class="textarea-box">
+                  <textarea id="edit-description" maxlength="1000" data-counter="desc-counter" data-max="1000" placeholder="Describe the character's personality, core traits, and any rules they follow." inputmode="none">Elyn Shadowwind is a silver-haired elven ranger who wanders the Moonlight Forest, where the leaves shimmer with silver light. Her amber eyes are sharp and watchful. A scar from her left brow to her cheekbone speaks of a night when her noble house was lost. She wears muted greens and browns, a wool cloak, and carries a bow with raven-fletched arrows. At her hips hang twin curved blades named Whisper and Wail. She practices archery at dawn and climbs to scan the horizon at dusk.</textarea>
+                  <p class="refine-stage" hidden></p>
+                  <span class="refine-badge">Original</span>
+                  <div class="refine-bones" hidden>
+                    <p class="refine-bones-kicker">Working on it…</p>
+                  </div>
+                  <div class="refine-status" hidden>
+                    <div class="refine-status-row">
+                      <span class="icon refine-status-icon" aria-hidden="true">&#xE9B6;</span>
+                      <span class="refine-status-copy">Reading your draft</span>
+                      <span class="refine-status-step">0/3</span>
+                    </div>
+                    <span class="refine-status-track"><span class="refine-status-fill"></span></span>
+                  </div>
+                  <span class="ai-refine-hit" data-hot="2 6">
+                  <button type="button" class="ai-refine is-visible" data-refine="description">
+                    <span class="icon" aria-hidden="true">&#xE9B6;</span>
+                    <span class="label">AI Refine</span>
+                  </button>
+                  <span class="prd-mark" aria-hidden="true">2</span>
+                  <span class="spec-mark" aria-hidden="true">6</span>
+                  </span>
+                </div>
+                <span class="spec-mark" aria-hidden="true">7</span>
+                </div>
+                <p class="counter" id="desc-counter">0/1000</p>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="field-title"><p>speaking style</p></div>
+              <div class="textarea-wrap">
+                <div class="mark-hit mark-hit--fill" data-hot="7">
+                <div class="textarea-box">
+                  <textarea id="edit-style" maxlength="600" data-counter="style-counter" data-max="600" placeholder="Tone, word choice, cadence — how do they speak?" inputmode="none">Elyn speaks in a quiet, measured tone—calm and watchful. Her words are deliberate, carrying observation rather than opinion. She rarely raises her voice, but when she does, it cuts through like an arrow.</textarea>
+                  <p class="refine-stage" hidden></p>
+                  <span class="refine-badge">Original</span>
+                  <div class="refine-bones" hidden>
+                    <p class="refine-bones-kicker">Working on it…</p>
+                  </div>
+                  <div class="refine-status" hidden>
+                    <div class="refine-status-row">
+                      <span class="icon refine-status-icon" aria-hidden="true">&#xE9B6;</span>
+                      <span class="refine-status-copy">Reading your draft</span>
+                      <span class="refine-status-step">0/3</span>
+                    </div>
+                    <span class="refine-status-track"><span class="refine-status-fill"></span></span>
+                  </div>
+                  <span class="ai-refine-hit" data-hot="2 6">
+                  <button type="button" class="ai-refine is-visible" data-refine="style">
+                    <span class="icon" aria-hidden="true">&#xE9B6;</span>
+                    <span class="label">AI Refine</span>
+                  </button>
+                  <span class="prd-mark" aria-hidden="true">2</span>
+                  <span class="spec-mark" aria-hidden="true">6</span>
+                  </span>
+                </div>
+                <span class="spec-mark" aria-hidden="true">7</span>
+                </div>
+                <p class="counter" id="style-counter">0/600</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-indicator"></div>
+    </div>
+  </div>
+
+  <div class="dialog-layer" id="refine-dialog">
+    <div class="dialog-mask" data-close-refine></div>
+    <div class="dialog" role="dialog" aria-labelledby="refine-title" aria-modal="true">
+      <div class="dialog-text">
+        <p class="dialog-title" id="refine-title">Refine with AI?</p>
+        <p class="dialog-body" id="refine-body">AI will polish and expand your current description. Your existing text will be replaced.</p>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="dialog-btn dialog-btn--cancel" data-close-refine>Cancel</button>
+        <button type="button" class="dialog-btn dialog-btn--refine" id="refine-confirm">Refine</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="dialog-layer" id="delete-dialog">
+    <div class="dialog-mask" data-close-delete></div>
+    <div class="dialog" role="dialog" aria-labelledby="delete-title" aria-modal="true">
+      <div class="dialog-text">
+        <p class="dialog-title" id="delete-title">Delete Elyn Shadowwind?</p>
+        <p class="dialog-body">This character will be permanently removed. You won’t be able to undo this.</p>
+      </div>
+      <div class="dialog-actions">
+        <button type="button" class="dialog-btn dialog-btn--cancel" data-close-delete>Cancel</button>
+        <button type="button" class="dialog-btn dialog-btn--danger" id="delete-confirm">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="refine-toast-layer" id="refine-toast" role="status" aria-live="polite" aria-hidden="true">
+    <div class="refine-toast-scale">
+    <div class="refine-toast">
+      <div class="refine-toast-icon" aria-hidden="true">
+        <img class="toast-glow" src="assets/ai_buz/toast_glow.svg" alt="">
+        <img class="toast-wand" src="assets/ai_buz/toast_wand.svg" alt="">
+        <img class="toast-spark toast-spark--s" src="assets/ai_buz/toast_spark_s.svg" alt="">
+        <img class="toast-spark toast-spark--m" src="assets/ai_buz/toast_spark_m.svg" alt="">
+        <img class="toast-spark toast-spark--l" src="assets/ai_buz/toast_spark_l.svg" alt="">
+      </div>
+      <p class="refine-toast-copy">Working on it…</p>
+      <p class="refine-toast-pct" id="refine-toast-pct">0%</p>
+    </div>
+    </div>
+  </div>
+
+  <div class="done-toast-scale" id="done-toast" role="status" aria-live="polite">
+    <div class="done-toast">
+      <span class="icon done-toast-icon" aria-hidden="true">&#xE916;</span>
+      <span class="done-toast-text">Refined successfully.</span>
+    </div>
+  </div>
+
+  <div class="kb" id="kb" aria-hidden="true">
+    <img class="kb-art" src="assets/ai_buz/keyboard.png" alt="" draggable="false">
+    <div class="kb-hits">
+      <div class="kb-suggest">
+        <button type="button" class="kb-key" data-insert="“The”" aria-label="The"></button>
+        <button type="button" class="kb-key" data-insert="the" aria-label="the"></button>
+        <button type="button" class="kb-key" data-insert="to" aria-label="to"></button>
+      </div>
+      <div class="kb-rows">
+        <div class="kb-row kb-row--letters">
+          <button type="button" class="kb-key kb-key--letter" data-letter="q"></button>
+          <button type="button" class="kb-key kb-key--letter" data-letter="w"></button>
+          <button type="button" class="kb-key kb-key--letter" data-letter="e"></button>
+          <button type="button" class="kb-key kb-key--letter" data-letter="r"></button>
+          <button type="button" class="kb-key kb-key--letter" data-letter="t"></button>
+          <button type="button" class="kb-key kb-key--letter" data-letter="y"></button>
+          <button type="button" class="kb-key kb-key--letter" data-letter="u"></button>
+          <button type="button" class="kb-key kb-key--letter" data-letter="i"></button>
+          <button type="button" class="kb-key kb-key--letter" data-letter="o"></button>
+          <button type="button" class="kb-key kb-key--letter" data-letter="p"></button>
+        </div>
+        <div class="kb-row kb-row--mid">
+          <button type="button" class="kb-key kb-key--mid" data-letter="a"></button>
+          <button type="button" class="kb-key kb-key--mid" data-letter="s"></button>
+          <button type="button" class="kb-key kb-key--mid" data-letter="d"></button>
+          <button type="button" class="kb-key kb-key--mid" data-letter="f"></button>
+          <button type="button" class="kb-key kb-key--mid" data-letter="g"></button>
+          <button type="button" class="kb-key kb-key--mid" data-letter="h"></button>
+          <button type="button" class="kb-key kb-key--mid" data-letter="j"></button>
+          <button type="button" class="kb-key kb-key--mid" data-letter="k"></button>
+          <button type="button" class="kb-key kb-key--mid" data-letter="l"></button>
+        </div>
+        <div class="kb-row kb-row--shift">
+          <button type="button" class="kb-key kb-key--mod" data-action="shift" aria-label="Shift"></button>
+          <div class="kb-zx">
+            <button type="button" class="kb-key kb-key--zx" data-letter="z"></button>
+            <button type="button" class="kb-key kb-key--zx" data-letter="x"></button>
+            <button type="button" class="kb-key kb-key--zx" data-letter="c"></button>
+            <button type="button" class="kb-key kb-key--zx" data-letter="v"></button>
+            <button type="button" class="kb-key kb-key--zx" data-letter="b"></button>
+            <button type="button" class="kb-key kb-key--zx" data-letter="n"></button>
+            <button type="button" class="kb-key kb-key--zx" data-letter="m"></button>
+          </div>
+          <button type="button" class="kb-key kb-key--mod" data-action="delete" aria-label="Delete"></button>
+        </div>
+        <div class="kb-row kb-row--bottom">
+          <button type="button" class="kb-key kb-key--123" data-action="noop" aria-label="123"></button>
+          <button type="button" class="kb-key kb-key--space" data-insert=" " aria-label="Space"></button>
+          <button type="button" class="kb-key kb-key--return" data-action="return" aria-label="Return"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+  </div>
+
+  <aside class="annot-col" id="annot-col" aria-hidden="false">
+    <div class="annot-inner">
+      <div class="prd-panel" id="prd-panel" aria-hidden="false">
+      <div class="annot-md-block">
+      <div class="annot-toolbar">
+        <span class="annot-file">prd.md</span>
+        <div class="annot-actions">
+          <button type="button" class="annot-md-toggle" aria-expanded="false" aria-controls="prd-md">
+            <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+            <span class="annot-md-hint">展开</span>
+          </button>
+          <button type="button" class="annot-copy" data-copy="prd-md">
+            <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            <span data-copy-label>复制</span>
+          </button>
+        </div>
+      </div>
+      <div class="annot-md-clip">
+      <pre class="annot-md" id="prd-md"># AI Character 资料与编辑
+
+原型：`delivery/01-ai-character/index.html`  
+默认打开本 PRD。交互与动效在左侧切到「交互与动效标注」。
+
+本文是按当前原型整理的草稿。产品补全边界、文案和未做规则；动效数字不要写进这里。
+
+## 待产品补
+
+- 入口：从哪里进、谁能看/编辑/删除
+- 编辑中为何不可删除；退出编辑未保存是否丢改动
+- AI Refine：要不要二次确认、失败/取消、是否进主路径 Hold original
+- Avatar 本迭代是否可换
+- 空态、超字数、网络失败的文案
+- Toast / 确认框文案是否定稿（系统组件，设计侧不改样式）
+
+## 触发条件
+
+从会话列表点开某个 AI 角色，进入本资料页。资料以 bottom sheet 盖在会话之上。
+
+- 编辑中不可删除
+- 删除仅资料页可点
+
+## 字段定义
+
+| 字段 | 规则 |
+| --- | --- |
+| Name | 必填。空则 Save 不可点。 |
+| Description | 必填，最多 1000。空则隐藏 AI Refine。 |
+| Speaking style | 必填，最多 600。规则同 Description。 |
+| Avatar | 本原型不换图。Change Avatar 为占位。 |
+
+## 交互规则
+
+1. **Edit Character** — 打开编辑层。
+2. **AI Refine** — 字段有字才显示。确认后出 Working toast，完成后替换当前字段并出成功 toast。
+3. **Save** — Name / Description / Style 任一为空，或正在 Refine，Save 置灰。成功则写回资料页并收起编辑层。
+4. **Delete** — 二次确认后资料 sheet 下滑离场，toast「Character deleted.」
+
+## 分支状态
+
+- Working toast
+- Save disabled
+- Delete confirm
+- Empty field</pre>
+      </div>
+      </div>
+      <section class="prd-card">
+        <h3>请补全</h3>
+        <p>设计和动效已按原型标完。下面是草稿：补边界、文案、未做规则。时长写在「交互与动效标注」，不要抄进 PRD。</p>
+        <p class="prd-muted">展开上方 prd.md 可复制全文。角标 1–4 对机内控件。Refine 确认、Toast、删除弹窗是系统件，只定文案。</p>
+      </section>
+      <section class="prd-card">
+        <h3>触发条件</h3>
+        <p>从会话列表点开某个 AI 角色，进入本资料页。资料以 bottom sheet 盖在会话之上。</p>
+        <p class="prd-muted">编辑中不可删除。删除仅资料页可点。</p>
+      </section>
+      <section class="prd-card">
+        <h3>字段定义</h3>
+        <table class="prd-table">
+          <tr><th>Name</th><td>必填。空则 Save 不可点。</td></tr>
+          <tr><th>Description</th><td>必填，最多 1000。空则隐藏 AI Refine。</td></tr>
+          <tr><th>Speaking style</th><td>必填，最多 600。规则同 Description。</td></tr>
+          <tr><th>Avatar</th><td>本原型不换图。Change Avatar 为占位。</td></tr>
+        </table>
+      </section>
+      <section class="prd-card">
+        <h3>交互规则</h3>
+        <ul>
+          <li class="prd-rule" data-hot="1">
+            <span class="prd-mark prd-mark--inline">1</span>
+            <p>打开编辑层。</p>
+            <span class="prd-rule-actions">
+              <button type="button" class="annot-icon" data-copy-rule aria-label="复制对应段落">
+                <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              </button>
+            </span>
+          </li>
+          <li class="prd-rule" data-hot="2">
+            <span class="prd-mark prd-mark--inline">2</span>
+            <p>字段有字才显示 AI Refine。确认后出 Working toast，完成后替换当前字段并出成功 toast。</p>
+            <span class="prd-rule-actions">
+              <button type="button" class="annot-icon" data-copy-rule aria-label="复制对应段落">
+                <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              </button>
+            </span>
+          </li>
+          <li class="prd-rule" data-hot="3">
+            <span class="prd-mark prd-mark--inline">3</span>
+            <p>Name / Description / Style 任一为空，或正在 Refine，Save 置灰。成功则写回资料页并收起编辑层。</p>
+            <span class="prd-rule-actions">
+              <button type="button" class="annot-icon" data-copy-rule aria-label="复制对应段落">
+                <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              </button>
+            </span>
+          </li>
+          <li class="prd-rule" data-hot="4">
+            <span class="prd-mark prd-mark--inline">4</span>
+            <p>二次确认后资料 sheet 下滑离场，toast「Character deleted.」</p>
+            <span class="prd-rule-actions">
+              <button type="button" class="annot-icon" data-copy-rule aria-label="复制对应段落">
+                <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              </button>
+            </span>
+          </li>
+        </ul>
+      </section>
+      <section class="prd-variants" aria-label="分支状态">
+        <p class="prd-variants-kicker">分支状态</p>
+        <div class="prd-variant-row">
+          <figure class="prd-variant" data-hot="2" data-hot-target="2">
+            <figcaption><span class="prd-mark prd-mark--inline">2</span> Working</figcaption>
+            <div class="prd-frame">
+              <div class="prd-mini-toast">
+                <p>Working on it…</p>
+                <p>64%</p>
+              </div>
+            </div>
+          </figure>
+          <figure class="prd-variant" data-hot="3" data-hot-target="3">
+            <figcaption><span class="prd-mark prd-mark--inline">3</span> Save disabled</figcaption>
+            <div class="prd-frame">
+              <div class="prd-mini-nav">
+                <p>Edit Character</p>
+                <span>Save</span>
+              </div>
+            </div>
+          </figure>
+          <figure class="prd-variant" data-hot="4" data-hot-target="4">
+            <figcaption><span class="prd-mark prd-mark--inline">4</span> Delete confirm</figcaption>
+            <div class="prd-frame">
+              <div class="prd-mini-dialog">
+                <strong>Delete Elyn Shadowwind?</strong>
+                <p>This character will be permanently removed.</p>
+                <div class="prd-mini-actions">
+                  <span>Cancel</span>
+                  <span class="is-danger">Delete</span>
+                </div>
+              </div>
+            </div>
+          </figure>
+          <figure class="prd-variant">
+            <figcaption>Empty field</figcaption>
+            <div class="prd-frame">
+              <p class="prd-mini-field">Describe the character’s personality, core traits, and any rules they follow.</p>
+            </div>
+          </figure>
+        </div>
+      </section>
+      </div>
+
+      <div class="spec-panel" id="spec-panel" aria-hidden="true">
+        <div class="annot-md-block">
+        <div class="annot-toolbar">
+          <span class="annot-file">motion.md</span>
+          <div class="annot-actions">
+            <button type="button" class="annot-md-toggle" aria-expanded="false" aria-controls="spec-md">
+              <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+              <span class="annot-md-hint">展开</span>
+            </button>
+            <button type="button" class="annot-copy" data-copy="spec-md">
+              <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span data-copy-label>复制</span>
+            </button>
+          </div>
+        </div>
+        <div class="annot-md-clip">
+        <pre class="annot-md" id="spec-md"># 交互与动效
+
+只标业务动效。Toast / 确认弹窗是系统组件，不打角标，本期不改。
+
+机内角标：
+
+| # | 表面 | 这条动效 |
+| --- | --- | --- |
+| 1 | Edit Character | 打开编辑叠层 |
+| 5 | Show more | 资料卡正文高度 |
+| 6 | AI Refine | 按钮随框高进出 |
+| 7 | Description / Style 文本框 | 润色后框高跟着正文变 |
+
+2、4 是系统 Toast / 确认框，不标。关闭叠层原先是 3，改存历史，不打角标。
+
+---
+
+## 共用
+
+叠层、Show more、Refine、键盘、按压都走同一条曲线，不要用 560ms（那是 VE-Tab）。
+
+| | |
+| --- | --- |
+| 曲线 | `cubic-bezier(0.32, 0.72, 0, 1)` |
+| 叠层时长 | **420ms** |
+| 错开 | **80ms**，只用于打开：下层立刻、上层晚 80ms。关闭两层一起动 |
+| Sheet 原点 | `transform-origin: 50% 0`（顶中） |
+
+---
+
+## 1 · 打开叠层
+
+触发：资料页点 Edit Character。
+
+| 层 | 何时动 | 做什么 |
+| --- | --- | --- |
+| 下层（资料） | 立刻，无 delay | `translateY(-10px) scale(335/375)`；顶角 30→20；底 `#1a1a1a`→`#141414`；handle 隐；内容 opacity 65% |
+| 上层（编辑） | 晚 **80ms** | `translateY(100%) → 0`，满宽滑入 |
+| 露出 | 到位后 | 下层顶边露出 **10px**，可点关闭 |
+
+不要 `scaleX`。不要用纯色块假装缩小。下层内容还在，只是被挡住。
+
+---
+
+## 5 · Show more
+
+触发：资料页 Description / Style 正文超过 **6 行**。短文没有入口，也不要占位。
+
+| | |
+| --- | --- |
+| 动什么 | 只动画正文 `height` |
+| 时长 | **360ms**，叠层同一条曲线 |
+| 文案 | Show more ↔ Show less |
+| 不要 | 不要改 opacity；不要瞬间改 `line-clamp` |
+
+---
+
+## 6 · AI Refine 进出
+
+触发：字段从空到有字（或反过来）。扫描 / 骨架进行中要藏。
+
+框高用 280ms 补间；按钮只做透明度和缩放。不要只动画按钮 `max-height`，否则框高量不准、按钮会压住正文。
+
+| | 隐 | 显 |
+| --- | --- | --- |
+| 框高 | 收掉按钮占位 | 让出按钮高度 |
+| 按钮 opacity | 0 | 1 |
+| 按钮 scale | 0.82，原点左中 | 1 |
+| 占位（瞬时切入补间） | max-height 0 · margin 0 · padding 0 8px | 32 / 10 / 4px 8px |
+| 时长 | **280ms**，叠层同一条曲线 | |
+
+有字才显示。
+
+---
+
+## 7 · 润色后框高
+
+触发：AI Refine 完成、新文案写进字段。正文变长或变短，**整个文本框**用 height 补间跟上，不要瞬间撑开、也不要只拉 textarea 不带动框。
+
+和 6 不是同一条：6 是空↔有字时按钮进出；7 是润色替换正文后的框高。打字时框高可以瞬时跟上，不必走这条。
+
+| | |
+| --- | --- |
+| 动什么 | `.textarea-box` 的 `height`（先量旧高，换文，再补间到新高） |
+| 时长 | **400ms**，叠层同一条曲线 |
+| 补间中 | `overflow: hidden`，结束后解开 |
+| 不要 | 不要改 opacity；高度差 &lt; 1px 则跳过动画 |
+
+V1 主路径在 Working toast 到 100% 时走这条。探索 V2 出骨架 / 换文时同一套 400ms。
+
+---
+
+## 键盘（不打角标）
+
+| | |
+| --- | --- |
+| 高度 | 310px |
+| 进出 | `translateY(100% → 0)`，**380ms**，叠层同一条曲线 |
+| 编辑区 | `padding-bottom` 34→324，同一时长 |
+| 收起 | Return / 点空白处 |
+
+---
+
+## 按压（不打角标）
+
+时长 **120ms**，叠层同一条曲线。
+
+| 控件 | scale |
+| --- | --- |
+| Edit Character | 0.97 |
+| Close | 0.88 |
+| Save | 0.96 |
+| 文本卡 | 0.985 |
+| 清除 | 160ms 显隐，focus 时才出现 |
+
+---
+
+## 系统组件（不打角标）
+
+本期不改。实现仍走现有 Toast / 确认弹窗。
+
+Toast：220ms · `cubic-bezier(0.25, 0.72, 0.22, 1)` · 只 Y 8px · 字和图标淡入淡出 · 玻璃底 0→0.78（不要给整层加 opacity）· Working 到 100% 再持 160ms · 成功文案停 2200ms。
+
+确认框：遮罩 70% · 卡 335 / 圆角 40 / `#1f1f1f` · 280ms · Y 10 + scale 0.96→1。删角色后资料 sheet `translateY(100%)`，420ms 叠层曲线。
+
+---
+
+## 历史 · 关闭叠层
+
+原先角标 3，本期不打。X / Save / 10px 顶边 / 跟手超阈值仍走同一条，不要瞬切。
+
+| 层 | 何时动 | 做什么 |
+| --- | --- | --- |
+| 上层 | 立刻 | `translateY(100%)` 下滑 |
+| 下层 | 立刻 | 还原满宽、顶角 30、底 `#1a1a1a`、handle 和内容透明度。不要晚 80ms |
+| 父层 | 等 **420ms** | 再 `visibility: hidden` |
+
+跟手：拖时关掉 transition。松手 **dy > 90px** 或 **vel > 0.85** 则关闭，否则弹回。
+
+---
+
+## 内部探索
+
+不进主交付。左侧设计探索打开后才有效。
+
+| | |
+| --- | --- |
+| V2 | 扫描（过线压暗，0.9–1.6s）→ 骨架 ~1.3s → 整段替换 + 成功 toast。无 Hold original |
+| V3 | 框内重写 + 框底 Reading / Rewriting / Finishing。Hold original |
+| V4 | 框内重写。读 → 写 → 余晖。Hold original，轻点多停 ~700ms。无状态条 |</pre>
+        </div>
+        </div>
+        <section class="prd-card">
+          <h3>交互与动效</h3>
+          <ul>
+            <li class="prd-rule" data-hot="1">
+              <span class="spec-mark spec-mark--inline">1</span>
+              <p>点 Edit Character 打开。下层立刻缩小上移，上层晚 80ms 从底滑入，到位后露出 10px 顶边。</p>
+              <span class="prd-rule-actions">
+                <button type="button" class="annot-icon" data-copy-rule aria-label="复制对应段落">
+                  <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                </button>
+              </span>
+            </li>
+            <li class="prd-rule" data-hot="5">
+              <span class="spec-mark spec-mark--inline">5</span>
+              <p>Description / Style 超过 6 行才出现。只拉正文高度，360ms。短文没有入口，也不占位。</p>
+              <span class="prd-rule-actions">
+                <button type="button" class="annot-icon" data-copy-rule aria-label="复制对应段落">
+                  <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                </button>
+                <button type="button" class="annot-icon annot-demo" data-demo="more" aria-label="演示">
+                  <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21"/></svg>
+                </button>
+              </span>
+            </li>
+            <li class="prd-rule" data-hot="6">
+              <span class="spec-mark spec-mark--inline">6</span>
+              <p>字段空↔有字时，框高 280ms 补间；按钮淡入并 scale 0.82→1。扫描 / 骨架进行中要藏。</p>
+              <span class="prd-rule-actions">
+                <button type="button" class="annot-icon" data-copy-rule aria-label="复制对应段落">
+                  <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                </button>
+                <button type="button" class="annot-icon annot-demo" data-demo="refine-in" aria-label="演示">
+                  <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21"/></svg>
+                </button>
+              </span>
+            </li>
+            <li class="prd-rule" data-hot="7">
+              <span class="spec-mark spec-mark--inline">7</span>
+              <p>润色完成、新文案写进字段时，文本框 height 400ms 跟上。不要瞬间撑开。</p>
+              <span class="prd-rule-actions">
+                <button type="button" class="annot-icon" data-copy-rule aria-label="复制对应段落">
+                  <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                </button>
+                <button type="button" class="annot-icon annot-demo" data-demo="refine-grow" aria-label="演示">
+                  <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 3 20 12 6 21"/></svg>
+                </button>
+              </span>
+            </li>
+          </ul>
+        </section>
+        <section class="prd-card">
+          <h3>参数</h3>
+          <p class="prd-muted">叠层、Show more、Refine、键盘、按压共用一条曲线。打开 / 关闭 / 跟手的位移写在对应角标段落里。</p>
+          <table class="prd-table spec-table">
+            <tr><th>曲线</th><td><span class="spec-code">cubic-bezier(0.32, 0.72, 0, 1)</span>。不要用 560ms（VE-Tab）</td></tr>
+            <tr><th>叠层</th><td>420ms · 打开错开 80ms · 关闭一起动 · <span class="spec-code">transform-origin: 50% 0</span></td></tr>
+            <tr><th>Show more</th><td>360ms · 只动画 height</td></tr>
+            <tr><th>Refine</th><td>280ms · 框高补间 · 按钮 opacity + scale（原点左中）</td></tr>
+            <tr><th>润色</th><td>400ms · 换文后只动画文本框 height</td></tr>
+            <tr><th>键盘</th><td>380ms · 高 310 · padding-bottom 34→324</td></tr>
+            <tr><th>按压</th><td>120ms · CTA 0.97 · Close 0.88 · Save 0.96 · 文本卡 0.985</td></tr>
+          </table>
+        </section>
+        <section class="prd-card">
+          <h3>历史 · 系统组件</h3>
+          <p class="prd-muted">Toast、确认弹窗、关闭叠层不打角标。参数写在 motion.md 里备查。</p>
+          <table class="prd-table spec-table">
+            <tr><th>Toast</th><td>220ms · <span class="spec-code">0.25, 0.72, 0.22, 1</span> · Y 8px · 内容淡入淡出 · Working 到 100% 再持 160ms · 成功 2200ms</td></tr>
+            <tr><th>弹窗</th><td>280ms · 遮罩 70% · 335 / 圆角 40 / #1f1f1f · Y 10 + scale 0.96→1</td></tr>
+            <tr><th>关闭</th><td>420ms · 上层下滑、下层立刻还原 · X / Save / 顶边 / 跟手同一条 · dy &gt; 90 或 vel &gt; 0.85</td></tr>
+          </table>
+        </section>
+        <section class="prd-card">
+          <h3>内部探索</h3>
+          <p class="prd-muted">只在左侧设计探索切换 V2–V4 时有效，不进主交付。</p>
+          <table class="prd-table spec-table">
+            <tr><th>V2</th><td>扫描（过线压暗，0.9–1.6s）→ 骨架 ~1.3s → 整段替换 + 成功 toast。无 Hold original。</td></tr>
+            <tr><th>V3</th><td>框内重写 + 框底 Reading / Rewriting / Finishing 与步数条。Hold original。</td></tr>
+            <tr><th>V4</th><td>框内重写。读 → 写 → 余晖。Hold original，轻点多停 ~700ms。无状态条。</td></tr>
+          </table>
+        </section>
+      </div>
+    </div>
+  </aside>
+  </div>
+  </div>
+</div>
+
+<script>
+  (function bindStudioChrome() {
+    var studio = document.getElementById('studio');
+    var annot = document.getElementById('annot-col');
+    var prdPanel = document.getElementById('prd-panel');
+    var specPanel = document.getElementById('spec-panel');
+    var hint = document.getElementById('explore-hint');
+    var annotModes = document.querySelectorAll('.annot-mode');
+    var annotPower = document.getElementById('annot-power');
+    var annotKind = document.getElementById('annot-kind');
+    var lastAnnot = 'prd';
+    var hoveredHot = {};
+    var pinnedHot = '';
+    var annotThumb = document.querySelector('.annot-thumb');
+    var annotMenu = document.querySelector('.studio-menu');
+    var exploreSeg = document.querySelector('.studio-group--explore .studio-seg');
+    var exploreThumb = document.querySelector('.studio-seg-thumb');
+
+    function layoutAnnotThumb() {
+      if (!annotThumb || !annotMenu) return;
+      var on = document.querySelector('.annot-mode.is-on');
+      if (!studio.classList.contains('is-annot') || !on) return;
+      var track = annotMenu.getBoundingClientRect();
+      var item = on.getBoundingClientRect();
+      annotThumb.style.height = item.height + 'px';
+      annotThumb.style.transform = 'translate3d(0,' + (item.top - track.top) + 'px,0)';
+    }
+
+    function layoutExploreThumb() {
+      if (!exploreThumb || !exploreSeg) return;
+      var on = exploreSeg.querySelector('.explore-pill.is-on');
+      if (!on) return;
+      var track = exploreSeg.getBoundingClientRect();
+      var item = on.getBoundingClientRect();
+      exploreThumb.style.width = item.width + 'px';
+      exploreThumb.style.transform = 'translate3d(' + (item.left - track.left) + 'px,' + (item.top - track.top) + 'px,0)';
+    }
+
+    function afterChromeLayout(fn) {
+      requestAnimationFrame(function () {
+        fn();
+        requestAnimationFrame(fn);
+      });
+    }
+
+    function writeChromeParams(mode) {
+      try {
+        var url = new URL(location.href);
+        if (mode) url.searchParams.set('annot', mode);
+        else url.searchParams.delete('annot');
+        if (studio.classList.contains('is-explore')) url.searchParams.set('explore', '1');
+        else url.searchParams.delete('explore');
+        history.replaceState(null, '', url.pathname + url.search + url.hash);
+      } catch (err) {}
+    }
+
+    function setAnnotMode(mode, skipUrl) {
+      if (mode === 'off') mode = '';
+      if (mode === 'prd' || mode === 'spec') lastAnnot = mode;
+      var prdOn = mode === 'prd';
+      var specOn = mode === 'spec';
+      var annotOn = prdOn || specOn;
+      studio.classList.toggle('is-prd', prdOn);
+      studio.classList.toggle('is-spec', specOn);
+      studio.classList.toggle('is-annot', annotOn);
+      annot.setAttribute('aria-hidden', annotOn ? 'false' : 'true');
+      prdPanel.setAttribute('aria-hidden', prdOn ? 'false' : 'true');
+      specPanel.setAttribute('aria-hidden', specOn ? 'false' : 'true');
+      if (annotPower) annotPower.checked = annotOn;
+      if (annotKind) annotKind.setAttribute('aria-hidden', annotOn ? 'false' : 'true');
+      annotModes.forEach(function (btn) {
+        var on = btn.getAttribute('data-annot-mode') === mode;
+        btn.classList.toggle('is-on', on);
+        btn.setAttribute('aria-checked', on ? 'true' : 'false');
+      });
+      if (!skipUrl) writeChromeParams(mode);
+      afterChromeLayout(layoutAnnotThumb);
+      hoveredHot = {};
+      applyHot();
+    }
+
+    window.setStudioAnnotMode = setAnnotMode;
+
+    if (annotPower) {
+      annotPower.addEventListener('change', function () {
+        setAnnotMode(annotPower.checked ? lastAnnot : '');
+      });
+    }
+    annotModes.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        setAnnotMode(btn.getAttribute('data-annot-mode'));
+      });
+    });
+    var exploreGate = document.getElementById('explore-gate');
+    var exploreGroup = document.getElementById('explore-group');
+    var hints = {
+      v1: 'V1 · 普通路径 · Working toast',
+      v2: 'V2 · 基于 V1 · 扫描与骨架',
+      v3: 'V3 · 框内重写 · 底部状态条',
+      v4: 'V4 · 框内重写 · 按住对比'
+    };
+
+    function setExploreOpen(open, skipUrl) {
+      studio.classList.toggle('is-explore', open);
+      exploreGroup.setAttribute('aria-hidden', open ? 'false' : 'true');
+      exploreGate.setAttribute('aria-expanded', open ? 'true' : 'false');
+      exploreGate.setAttribute('aria-label', open ? '收起设计探索' : '打开设计探索');
+      if (!skipUrl) {
+        var mode = studio.classList.contains('is-prd') ? 'prd' : studio.classList.contains('is-spec') ? 'spec' : '';
+        writeChromeParams(mode);
+      }
+      afterChromeLayout(layoutExploreThumb);
+    }
+
+    var wantExplore = /(?:[?&]explore=1(?:&|$))|(?:#explore)/.test(location.search + location.hash);
+    var annotFromUrl = /(?:[?&]annot=(prd|spec)(?:&|$))/.exec(location.search);
+    setExploreOpen(wantExplore, true);
+    setAnnotMode(annotFromUrl ? annotFromUrl[1] : 'prd', true);
+    writeChromeParams(annotFromUrl ? annotFromUrl[1] : 'prd');
+    layoutAnnotThumb();
+    layoutExploreThumb();
+    requestAnimationFrame(function () {
+      layoutAnnotThumb();
+      layoutExploreThumb();
+      studio.classList.add('is-ready');
+    });
+
+    if (exploreGate) {
+      exploreGate.addEventListener('click', function () {
+        setExploreOpen(!studio.classList.contains('is-explore'));
+      });
+    }
+
+    document.querySelectorAll('[data-explore]').forEach(function (btn) {
+      if (!btn.classList.contains('explore-pill')) return;
+      btn.addEventListener('click', function () {
+        var ver = btn.getAttribute('data-explore');
+        studio.setAttribute('data-explore', ver);
+        document.querySelectorAll('.explore-pill').forEach(function (el) {
+          var on = el === btn;
+          el.classList.toggle('is-on', on);
+          el.setAttribute('aria-checked', on ? 'true' : 'false');
+        });
+        hint.textContent = hints[ver] || hints.v1;
+        layoutExploreThumb();
+      });
+    });
+
+    var annotSlot = document.querySelector('.studio-annot-slot');
+    var exploreSlot = document.querySelector('.studio-explore-slot');
+    if (annotSlot) {
+      annotSlot.addEventListener('transitionend', function (e) {
+        if (e.propertyName === 'grid-template-rows') layoutAnnotThumb();
+      });
+    }
+    if (exploreSlot) {
+      exploreSlot.addEventListener('transitionend', function (e) {
+        if (e.propertyName === 'grid-template-rows') layoutExploreThumb();
+      });
+    }
+    window.addEventListener('resize', function () {
+      layoutAnnotThumb();
+      layoutExploreThumb();
+    });
+
+    function dedent(text) {
+      var lines = String(text).replace(/^\n/, '').replace(/\s+$/, '').split('\n');
+      var indents = lines.filter(function (line) {
+        return line.trim();
+      }).map(function (line) {
+        return line.match(/^\s*/)[0].length;
+      });
+      var min = indents.length ? Math.min.apply(null, indents) : 0;
+      return lines.map(function (line) {
+        return line.slice(min);
+      }).join('\n') + '\n';
+    }
+
+    ['prd-md', 'spec-md'].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = dedent(el.textContent);
+    });
+
+    document.querySelectorAll('.annot-md-toggle').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var block = btn.closest('.annot-md-block');
+        var open = !block.classList.contains('is-open');
+        block.classList.toggle('is-open', open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+        var hint = btn.querySelector('.annot-md-hint');
+        if (hint) hint.textContent = open ? '收起' : '展开';
+      });
+    });
+
+    function copyAnnotMd(btn) {
+      var src = document.getElementById(btn.getAttribute('data-copy'));
+      if (!src) return;
+      var text = src.textContent;
+      if (text.slice(-1) !== '\n') text += '\n';
+      function done() {
+        var label = btn.querySelector('[data-copy-label]') || btn;
+        btn.classList.add('is-done');
+        label.textContent = '已复制';
+        setTimeout(function () {
+          btn.classList.remove('is-done');
+          label.textContent = '复制';
+        }, 1400);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function () {
+          fallbackCopy(text, done);
+        });
+      } else {
+        fallbackCopy(text, done);
+      }
+    }
+
+    function fallbackCopy(text, done) {
+      var area = document.createElement('textarea');
+      area.value = text;
+      area.setAttribute('readonly', '');
+      area.style.position = 'fixed';
+      area.style.left = '-9999px';
+      document.body.appendChild(area);
+      area.select();
+      try {
+        document.execCommand('copy');
+        done();
+      } catch (err) {}
+      document.body.removeChild(area);
+    }
+
+    document.querySelectorAll('.annot-copy').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        copyAnnotMd(btn);
+      });
+    });
+
+    function ruleMdSnippet(rule) {
+      var n = String(rule.getAttribute('data-hot') || '').trim().split(/[\s,]+/)[0];
+      var srcId = specPanel.contains(rule) ? 'spec-md' : 'prd-md';
+      var raw = (document.getElementById(srcId) || {}).textContent || '';
+      var text = '';
+      if (n && raw) {
+        var heading = raw.match(new RegExp('(^|\\n)(##\\s*' + n + '\\b[^\\n]*\\n[\\s\\S]*?)(?=\\n##\\s+|$)'));
+        if (heading) text = heading[2].trim();
+        if (!text) {
+          var item = raw.match(new RegExp('(^|\\n)(' + n + '\\.\\s[\\s\\S]*?)(?=\\n\\d+\\.\\s|\\n##\\s+|$)'));
+          if (item) text = item[2].trim();
+        }
+      }
+      if (!text) {
+        var p = rule.querySelector('p');
+        text = p ? p.textContent.trim() : '';
+      }
+      return text;
+    }
+
+    function copyRuleMd(btn) {
+      var rule = btn.closest('.prd-rule');
+      if (!rule) return;
+      var text = ruleMdSnippet(rule);
+      if (!text) return;
+      if (text.slice(-1) !== '\n') text += '\n';
+      function done() {
+        btn.classList.add('is-done');
+        btn.setAttribute('aria-label', '已复制');
+        setTimeout(function () {
+          btn.classList.remove('is-done');
+          btn.setAttribute('aria-label', '复制对应段落');
+        }, 1400);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done).catch(function () {
+          fallbackCopy(text, done);
+        });
+      } else {
+        fallbackCopy(text, done);
+      }
+    }
+
+    document.querySelectorAll('[data-copy-rule]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        copyRuleMd(btn);
+      });
+    });
+
+    function hotIds(el) {
+      return String(el.getAttribute('data-hot') || '').trim().split(/[\s,]+/).filter(Boolean);
+    }
+
+    function hotPanel() {
+      if (studio.classList.contains('is-spec')) return specPanel;
+      if (studio.classList.contains('is-prd')) return prdPanel;
+      return null;
+    }
+
+    function modeHasHot(id) {
+      var panel = hotPanel();
+      return !!(panel && id && panel.querySelector('[data-hot~="' + id + '"]'));
+    }
+
+    function idsForMode(el) {
+      return hotIds(el).filter(modeHasHot);
+    }
+
+    function applyHot() {
+      if (pinnedHot && !modeHasHot(pinnedHot)) pinnedHot = '';
+      document.querySelectorAll('[data-hot]').forEach(function (el) {
+        var ids = idsForMode(el);
+        var on = ids.some(function (id) {
+          return hoveredHot[id] || id === pinnedHot;
+        });
+        el.classList.toggle('is-hot', on);
+      });
+      document.querySelectorAll('.prd-mark, .spec-mark').forEach(function (mark) {
+        var host = mark.closest('[data-hot]');
+        mark.classList.toggle('is-hot', !!(host && host.classList.contains('is-hot')));
+      });
+    }
+
+    function revealAnnotHit(n) {
+      if (!n || !studio.classList.contains('is-annot')) return;
+      var panel = studio.classList.contains('is-spec') ? specPanel : prdPanel;
+      if (!panel) return;
+      var hit = panel.querySelector('.prd-rule[data-hot~="' + n + '"]') ||
+        panel.querySelector('[data-hot~="' + n + '"]');
+      if (hit) hit.scrollIntoView({ block: 'nearest' });
+    }
+
+    document.querySelectorAll('[data-hot]').forEach(function (el) {
+      el.addEventListener('mouseenter', function () {
+        idsForMode(el).forEach(function (n) { hoveredHot[n] = true; });
+        applyHot();
+        if (!annot.contains(el)) revealAnnotHit(idsForMode(el)[0]);
+      });
+      el.addEventListener('mouseleave', function () {
+        idsForMode(el).forEach(function (n) { delete hoveredHot[n]; });
+        applyHot();
+      });
+      el.addEventListener('click', function (e) {
+        if (e.target.closest('.annot-demo, .annot-icon, .prd-rule-actions')) return;
+        var n = idsForMode(el)[0];
+        if (!n) return;
+        if (el.classList.contains('prd-rule')) {
+          pinnedHot = pinnedHot === n ? '' : n;
+          applyHot();
+        }
+        if (annot.contains(el)) {
+          var target = annot.querySelector('[data-hot-target="' + n + '"]');
+          if (target) target.scrollIntoView({ block: 'nearest' });
+        } else {
+          revealAnnotHit(n);
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-demo="more"]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof window.playAnnotShowMoreDemo === 'function') window.playAnnotShowMoreDemo();
+      });
+    });
+    document.querySelectorAll('[data-demo="refine-grow"]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof window.playAnnotRefineGrowDemo === 'function') window.playAnnotRefineGrowDemo();
+      });
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      if (document.querySelector('.dialog-layer.is-open')) return;
+      var phone = document.getElementById('phone');
+      if (phone && (phone.classList.contains('is-keyboard') || phone.classList.contains('is-editing'))) return;
+      if (studio.classList.contains('is-annot')) {
+        e.preventDefault();
+        setAnnotMode('');
+      }
+    });
+  })();
+
+  var COLLAPSED_LINES = 6;
+
+  function collapsedBodyHeight(body) {
+    var lh = parseFloat(getComputedStyle(body).lineHeight);
+    if (!lh) lh = 20.8;
+    return lh * COLLAPSED_LINES;
+  }
+
+  function expandCardBody(body) {
+    body.style.webkitLineClamp = 'unset';
+    body.style.display = 'block';
+    var full = body.scrollHeight;
+    body.style.height = full + 'px';
+    return full;
+  }
+
+  function collapseCardBody(body, animate) {
+    var collapsed = collapsedBodyHeight(body);
+    if (animate) {
+      body.style.height = collapsed + 'px';
+    } else {
+      body.style.webkitLineClamp = String(COLLAPSED_LINES);
+      body.style.display = '-webkit-box';
+      body.style.height = collapsed + 'px';
+    }
+  }
+
+  function fullBodyHeight(body) {
+    var clamp = body.style.webkitLineClamp;
+    var display = body.style.display;
+    var height = body.style.height;
+    body.style.webkitLineClamp = 'unset';
+    body.style.display = 'block';
+    body.style.height = 'auto';
+    var full = body.scrollHeight;
+    body.style.webkitLineClamp = clamp;
+    body.style.display = display;
+    body.style.height = height;
+    return full;
+  }
+
+  function syncCardOverflow(card) {
+    var body = card.querySelector('.text-card-body');
+    var label = card.querySelector('.show-more');
+    var needsToggle = fullBodyHeight(body) > collapsedBodyHeight(body) + 1;
+    card.classList.toggle('is-short', !needsToggle);
+    if (!needsToggle) {
+      card.classList.remove('is-open');
+      if (label) label.textContent = 'Show more';
+      body.style.webkitLineClamp = 'unset';
+      body.style.display = 'block';
+      body.style.height = 'auto';
+      return;
+    }
+    if (card.classList.contains('is-open')) {
+      expandCardBody(body);
+      body.style.height = 'auto';
+    } else {
+      collapseCardBody(body, false);
+    }
+  }
+
+  document.querySelectorAll('[data-toggle-more]').forEach(function (card) {
+    var body = card.querySelector('.text-card-body');
+    var label = card.querySelector('.show-more');
+
+    syncCardOverflow(card);
+
+    body.addEventListener('transitionend', function (e) {
+      if (e.propertyName !== 'height') return;
+      if (card.classList.contains('is-open')) {
+        body.style.height = 'auto';
+      } else if (!card.classList.contains('is-short')) {
+        body.style.webkitLineClamp = String(COLLAPSED_LINES);
+        body.style.display = '-webkit-box';
+      }
+    });
+
+    card.addEventListener('click', function () {
+      if (card.classList.contains('is-short')) return;
+      var open = !card.classList.contains('is-open');
+      var from = body.getBoundingClientRect().height;
+
+      if (open) {
+        card.classList.add('is-open');
+        if (label) label.textContent = 'Show less';
+        body.style.webkitLineClamp = 'unset';
+        body.style.display = 'block';
+        body.style.height = 'auto';
+        var to = body.scrollHeight;
+        body.style.height = from + 'px';
+        void body.offsetHeight;
+        body.style.height = to + 'px';
+      } else {
+        card.classList.remove('is-open');
+        if (label) label.textContent = 'Show more';
+        body.style.height = from + 'px';
+        void body.offsetHeight;
+        collapseCardBody(body, true);
+      }
+    });
+  });
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(function () {
+      document.querySelectorAll('[data-toggle-more]').forEach(syncCardOverflow);
+    });
+  }
+
+  var phone = document.getElementById('phone');
+  var editLayer = document.getElementById('edit-layer');
+  var editSheet = document.getElementById('edit-sheet');
+  var editBody = document.getElementById('edit-body');
+  var kb = document.getElementById('kb');
+  var refineDialog = document.getElementById('refine-dialog');
+  var deleteDialog = document.getElementById('delete-dialog');
+  var refineToast = document.getElementById('refine-toast');
+  var refinePct = document.getElementById('refine-toast-pct');
+  var doneToast = document.getElementById('done-toast');
+  var nameInput = document.getElementById('edit-name');
+  var descInput = document.getElementById('edit-description');
+  var styleInput = document.getElementById('edit-style');
+  var saveBtn = document.getElementById('edit-save');
+  var refineBody = document.getElementById('refine-body');
+  var refineTitle = document.getElementById('refine-title');
+  var refining = false;
+  var refineTarget = 'description';
+  var doneTimer = 0;
+  var doneExitTimer = 0;
+  var workingExitTimer = 0;
+  var toastEnterRaf = 0;
+  var REFINE_MS = 2800;
+  var DONE_TOAST_MS = 2200;
+  var TOAST_OUT_MS = 220;
+
+  function cancelToastEnter() {
+    if (toastEnterRaf) {
+      cancelAnimationFrame(toastEnterRaf);
+      toastEnterRaf = 0;
+    }
+  }
+
+  function toastEnter(el, openClass) {
+    cancelToastEnter();
+    el.classList.remove(openClass);
+    el.style.visibility = 'visible';
+    void el.offsetWidth;
+    toastEnterRaf = requestAnimationFrame(function () {
+      toastEnterRaf = requestAnimationFrame(function () {
+        toastEnterRaf = 0;
+        el.classList.add(openClass);
+      });
+    });
+  }
+
+  function toastExit(el, openClass, onDone) {
+    cancelToastEnter();
+    el.style.visibility = 'visible';
+    el.classList.remove(openClass);
+    return setTimeout(function () {
+      el.style.visibility = 'hidden';
+      if (onDone) onDone();
+    }, TOAST_OUT_MS);
+  }
+
+  function hideDoneToastNow() {
+    cancelToastEnter();
+    clearTimeout(doneTimer);
+    clearTimeout(doneExitTimer);
+    if (doneToast.classList.contains('is-on') || doneToast.style.visibility === 'visible') {
+      toastExit(doneToast, 'is-on');
+    } else {
+      doneToast.classList.remove('is-on');
+      doneToast.style.visibility = 'hidden';
+    }
+  }
+  var POLISHED_DESC =
+    'Elyn Shadowwind is a silver-haired elven ranger who wanders the ancient Moonlight Forest—a place where leaves glow with a perpetual silver light. Her long hair drifts like moonlight, catching fireflies in its wake. Her amber eyes, sharp as an eagle\'s, read both shadows and strangers\' intentions with equal precision. A pale scar traces from her left brow to her cheekbone—a lasting reminder of the night her noble house fell to betrayal and flame. She dresses in muted greens and earth-browns, with a worn wool cloak draped over her shoulders and a quiver of raven-fletched arrows at her back. Twin curved blades hang at her hips, named Whisper and Wail—one for silent death, the other for alarm. Each dawn she practices archery; each dusk she climbs the tallest oak to scan the horizon for smoke or movement.';
+  var POLISHED_STYLE =
+    'Elyn speaks in a quiet, measured tone—calm and watchful, like one who has learned to listen before acting. Her words are deliberate and precise, carrying observation rather than opinion. She rarely raises her voice, but when she does, it cuts through like an arrow. She speaks in short, vivid images drawn from the forest—comparing people to trees, weather, or prey. She deflects questions about her past with quiet irony, and meets others—whether "stranger" or "friend"—with the same guarded caution.';
+
+  var refineFields = {
+    description: {
+      input: descInput,
+      polish: polishDescription,
+      prompt: 'AI will polish and expand your current description. Your existing text will be replaced.',
+      titleV2: 'Make it more vivid?',
+      promptV2: 'AI will expand this into richer detail. Afterward, hold the button to see your original.',
+      readPhrases: ['Moonlight Forest', 'A scar from her left brow to her cheekbone', 'Whisper and Wail'],
+      addPhrases: ['glow with a perpetual silver light', 'catching fireflies in its wake', 'betrayal and flame', 'one for silent death, the other for alarm'],
+      chunks: [
+        'Elyn Shadowwind is a silver-haired elven ranger who wanders the ancient Moonlight Forest—a place where leaves glow with a perpetual silver light. ',
+        'Her long hair drifts like moonlight, catching fireflies in its wake. ',
+        'Her amber eyes, sharp as an eagle\'s, read both shadows and strangers\' intentions with equal precision. ',
+        'A pale scar traces from her left brow to her cheekbone—a lasting reminder of the night her noble house fell to betrayal and flame. ',
+        'She dresses in muted greens and earth-browns, with a worn wool cloak draped over her shoulders and a quiver of raven-fletched arrows at her back. Twin curved blades hang at her hips, named Whisper and Wail—one for silent death, the other for alarm. ',
+        'Each dawn she practices archery; each dusk she climbs the tallest oak to scan the horizon for smoke or movement.'
+      ]
+    },
+    style: {
+      input: styleInput,
+      polish: polishStyle,
+      prompt: 'AI will polish and expand your current speaking style. Your existing text will be replaced.',
+      titleV2: 'Make it more vivid?',
+      promptV2: 'AI will expand this into richer detail. Afterward, hold the button to see your original.',
+      readPhrases: ['quiet, measured tone', 'cuts through like an arrow'],
+      addPhrases: ['like one who has learned to listen before acting', 'short, vivid images drawn from the forest', 'quiet irony'],
+      chunks: [
+        'Elyn speaks in a quiet, measured tone—calm and watchful, like one who has learned to listen before acting. ',
+        'Her words are deliberate and precise, carrying observation rather than opinion. She rarely raises her voice, but when she does, it cuts through like an arrow. ',
+        'She speaks in short, vivid images drawn from the forest—comparing people to trees, weather, or prey. She deflects questions about her past with quiet irony, and meets others—whether "stranger" or "friend"—with the same guarded caution.'
+      ]
+    }
+  };
+
+  function showDoneToast(message) {
+    clearTimeout(doneTimer);
+    clearTimeout(doneExitTimer);
+    doneToast.querySelector('.done-toast-text').textContent = message;
+    toastEnter(doneToast, 'is-on');
+    doneTimer = setTimeout(function () {
+      doneExitTimer = toastExit(doneToast, 'is-on');
+    }, DONE_TOAST_MS);
+  }
+
+  function isDialogOpen() {
+    return refineDialog.classList.contains('is-open') || deleteDialog.classList.contains('is-open');
+  }
+
+  function closeTopDialog() {
+    if (refineDialog.classList.contains('is-open')) {
+      refineDialog.classList.remove('is-open');
+      return true;
+    }
+    if (deleteDialog.classList.contains('is-open')) {
+      deleteDialog.classList.remove('is-open');
+      return true;
+    }
+    return false;
+  }
+
+  function polishDescription(text) {
+    var t = text.trim();
+    if (!t || t.indexOf('leaves shimmer with silver light') !== -1) {
+      return POLISHED_DESC;
+    }
+    return t;
+  }
+
+  function polishStyle(text) {
+    var t = text.trim();
+    if (!t || t.indexOf('calm and watchful. Her words') !== -1) {
+      return POLISHED_STYLE;
+    }
+    return t;
+  }
+
+  function isSurpriseExplore() {
+    var ver = document.getElementById('studio').getAttribute('data-explore');
+    return ver === 'v3' || ver === 'v4';
+  }
+
+  function isStatusExplore() {
+    return document.getElementById('studio').getAttribute('data-explore') === 'v3';
+  }
+
+  function isSkeletonExplore() {
+    return document.getElementById('studio').getAttribute('data-explore') === 'v2';
+  }
+
+  function reduceMotion() {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function waitMs(ms) {
+    return new Promise(function (resolve) {
+      setTimeout(resolve, ms);
+    });
+  }
+
+  var boxTweenTail = typeof WeakMap === 'function' ? new WeakMap() : null;
+
+  function tweenBoxHeightNow(box, apply, ms) {
+    ms = ms == null ? 400 : ms;
+    var from = box.getBoundingClientRect().height;
+    box.style.minHeight = '';
+    box.style.height = from + 'px';
+    apply();
+    if (reduceMotion()) {
+      box.style.height = '';
+      box.style.removeProperty('--box-tween');
+      return Promise.resolve();
+    }
+    box.style.height = 'auto';
+    var to = box.getBoundingClientRect().height;
+    box.style.height = from + 'px';
+    if (Math.abs(to - from) < 1) {
+      box.style.height = '';
+      box.style.removeProperty('--box-tween');
+      return Promise.resolve();
+    }
+    box.style.setProperty('--box-tween', ms / 1000 + 's');
+    box.classList.add('is-height-tween');
+    void box.offsetHeight;
+    box.style.height = to + 'px';
+    return waitMs(ms).then(function () {
+      box.classList.remove('is-height-tween');
+      box.style.height = '';
+      box.style.removeProperty('--box-tween');
+    });
+  }
+
+  function tweenBoxHeight(box, apply, ms) {
+    if (!boxTweenTail) return tweenBoxHeightNow(box, apply, ms);
+    var tail = boxTweenTail.get(box) || Promise.resolve();
+    var run = tail.then(function () {
+      return tweenBoxHeightNow(box, apply, ms);
+    });
+    boxTweenTail.set(box, run.then(function () {}, function () {}));
+    return run;
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  function markPhrases(text, phrases, className) {
+    if (!phrases || !phrases.length) return escapeHtml(text);
+    var hits = [];
+    phrases.forEach(function (phrase) {
+      var idx = text.indexOf(phrase);
+      if (idx === -1) return;
+      hits.push({ idx: idx, len: phrase.length, phrase: phrase });
+    });
+    hits.sort(function (a, b) { return a.idx - b.idx; });
+    var html = '';
+    var cursor = 0;
+    hits.forEach(function (hit) {
+      if (hit.idx < cursor) return;
+      html += escapeHtml(text.slice(cursor, hit.idx));
+      html += '<mark class="' + className + '">' + escapeHtml(hit.phrase) + '</mark>';
+      cursor = hit.idx + hit.len;
+    });
+    html += escapeHtml(text.slice(cursor));
+    return html;
+  }
+
+  function fieldFromInput(area) {
+    if (area === descInput) return refineFields.description;
+    if (area === styleInput) return refineFields.style;
+    return null;
+  }
+
+  function setRefineLabel(field, text) {
+    field.btn.querySelector('.label').textContent = text;
+  }
+
+  function setRefineStatus(field, copy, step, total) {
+    if (!isStatusExplore() || !field.status) return;
+    var status = field.status;
+    var t = Math.max(1, total);
+    var s = Math.max(0, Math.min(step, t));
+    status.hidden = false;
+    field.input.closest('.textarea-box').classList.add('is-status-on');
+    status.querySelector('.refine-status-copy').textContent = copy;
+    status.querySelector('.refine-status-step').textContent = s + '/' + t;
+    status.querySelector('.refine-status-fill').style.transform = 'scaleX(' + (s / t) + ')';
+  }
+
+  function hideRefineStatus(field) {
+    if (!field.status) return;
+    field.status.hidden = true;
+    field.input.closest('.textarea-box').classList.remove('is-status-on');
+    field.status.querySelector('.refine-status-fill').style.transform = 'scaleX(0)';
+  }
+
+  function fillBones(field, polished) {
+    var host = field.bones;
+    if (!host) return;
+    var kicker = host.querySelector('.refine-bones-kicker');
+    host.querySelectorAll('.refine-bone').forEach(function (el) {
+      el.remove();
+    });
+    var count = Math.max(3, Math.min(8, Math.round(String(polished || '').length / 70) || 4));
+    var mid = [295, 272, 295, 248, 286, 260, 295];
+    var i;
+    for (i = 0; i < count; i++) {
+      var bone = document.createElement('span');
+      bone.className = 'refine-bone';
+      bone.style.width = (i === count - 1 ? 215 : mid[i % mid.length]) + 'px';
+      host.insertBefore(bone, kicker);
+    }
+  }
+
+  function hideBones(field) {
+    if (!field.bones) return;
+    field.bones.hidden = true;
+    field.bones.classList.remove('is-exiting', 'is-in');
+    field.input.closest('.textarea-box').classList.remove('is-scanning', 'is-boning');
+  }
+
+  function rollCounter(area, from, to, ms) {
+    var el = document.getElementById(area.dataset.counter);
+    var max = area.dataset.max;
+    if (ms <= 0 || from === to) {
+      el.textContent = to + '/' + max;
+      return;
+    }
+    var start = performance.now();
+    function tick(now) {
+      var p = Math.min(1, (now - start) / ms);
+      var eased = 1 - Math.pow(1 - p, 1.6);
+      el.textContent = Math.round(from + (to - from) * eased) + '/' + max;
+      if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function finishCompareMode(field) {
+    field.btn.classList.remove('is-busy');
+    field.btn.classList.add('is-compare');
+    setRefineLabel(field, 'Hold original');
+    field.btn.setAttribute('aria-label', 'Hold to see original');
+  }
+
+  function clearCompareMode(field) {
+    if (!field) return;
+    if (field.holdRestoreTimer) {
+      clearTimeout(field.holdRestoreTimer);
+      field.holdRestoreTimer = 0;
+    }
+    field.holding = false;
+    field.original = '';
+    field.polished = '';
+    field.btn.classList.remove('is-compare', 'is-busy');
+    setRefineLabel(field, 'AI Refine');
+    field.btn.removeAttribute('aria-label');
+    hideRefineStatus(field);
+    hideBones(field);
+    field.input.closest('.textarea-box').classList.remove('is-holding', 'is-staging');
+  }
+
+  function beginHoldCompare(field) {
+    if (!field.original || !field.polished) return;
+    if (field.holdRestoreTimer) {
+      clearTimeout(field.holdRestoreTimer);
+      field.holdRestoreTimer = 0;
+    }
+    field.holding = true;
+    field.holdAt = performance.now();
+    field.input.value = field.original;
+    autoSize(field.input);
+    syncCounter(field.input);
+    field.input.closest('.textarea-box').classList.add('is-holding');
+  }
+
+  function endHoldCompare(field) {
+    if (!field.holding && !field.holdRestoreTimer) return;
+    field.holding = false;
+    var held = performance.now() - (field.holdAt || 0);
+    function restore() {
+      if (field.holding || !field.polished) return;
+      field.input.value = field.polished;
+      autoSize(field.input);
+      syncCounter(field.input);
+      field.input.closest('.textarea-box').classList.remove('is-holding');
+      field.holdRestoreTimer = 0;
+    }
+    if (held < 400) {
+      field.holdRestoreTimer = setTimeout(restore, 700);
+    } else {
+      restore();
+    }
+  }
+
+  function syncExploreCompareChrome() {
+    Object.keys(refineFields).forEach(function (key) {
+      var field = refineFields[key];
+      if (!field.btn) return;
+      if (!isSurpriseExplore()) {
+        if (field.holding) endHoldCompare(field);
+        field.btn.classList.remove('is-compare');
+        setRefineLabel(field, 'AI Refine');
+        field.btn.removeAttribute('aria-label');
+        field.input.closest('.textarea-box').classList.remove('is-holding');
+        hideRefineStatus(field);
+        hideBones(field);
+        if (field.polished) {
+          field.input.value = field.polished;
+          autoSize(field.input);
+          syncCounter(field.input);
+        }
+      } else if (field.original && field.polished && field.original !== field.polished) {
+        finishCompareMode(field);
+      }
+    });
+  }
+
+  function liftStaging(field) {
+    requestAnimationFrame(function () {
+      var wrap = field.input.closest('.textarea-wrap');
+      var bodyRect = editBody.getBoundingClientRect();
+      var rect = wrap.getBoundingClientRect();
+      var overflow = rect.bottom - (bodyRect.bottom - 24);
+      if (overflow > 0) editBody.scrollTop += overflow;
+    });
+  }
+
+  async function startSurpriseRefine(field) {
+    refining = true;
+    syncSaveBtn();
+    hideKeyboard();
+    hideDoneToastNow();
+
+    var original = field.input.value;
+    var polished = field.polish(original);
+    var box = field.input.closest('.textarea-box');
+    var stage = field.stage;
+    var btn = field.btn;
+    var canned = polished === POLISHED_DESC || polished === POLISHED_STYLE;
+    var chunks = canned ? field.chunks.slice() : [polished];
+    var skipTheater = reduceMotion() || original === polished;
+    var useStatus = isStatusExplore();
+
+    field.original = original;
+    field.polished = polished;
+    btn.classList.add('is-busy');
+    btn.classList.remove('is-compare');
+    if (useStatus) {
+      setRefineLabel(field, 'AI Refine');
+      setRefineStatus(field, skipTheater ? 'Refining…' : 'Reading your draft', 0, skipTheater ? 1 : Math.max(1, field.readPhrases.length));
+    } else {
+      setRefineLabel(field, skipTheater ? 'Refining…' : 'Reading…');
+    }
+
+    if (skipTheater) {
+      field.input.value = polished;
+      autoSize(field.input);
+      syncCounter(field.input);
+      if (useStatus && original !== polished) await waitMs(320);
+      hideRefineStatus(field);
+      refining = false;
+      syncSaveBtn();
+      if (original !== polished) finishCompareMode(field);
+      else {
+        btn.classList.remove('is-busy');
+        setRefineLabel(field, 'AI Refine');
+      }
+      return;
+    }
+
+    box.classList.add('is-staging');
+    box.style.minHeight = box.getBoundingClientRect().height + 'px';
+    stage.hidden = false;
+    stage.classList.remove('is-exiting');
+    stage.innerHTML = markPhrases(original, field.readPhrases, 'refine-read');
+    liftStaging(field);
+
+    await waitMs(80);
+    var reads = stage.querySelectorAll('.refine-read');
+    var readTotal = Math.max(1, reads.length);
+    if (useStatus) setRefineStatus(field, 'Reading your draft', 0, readTotal);
+    for (var i = 0; i < reads.length; i++) {
+      reads[i].classList.add('is-on');
+      if (useStatus) setRefineStatus(field, 'Reading your draft', i + 1, readTotal);
+      await waitMs(200);
+    }
+    await waitMs(280);
+
+    if (useStatus) setRefineStatus(field, 'Rewriting', 0, chunks.length);
+    else setRefineLabel(field, 'Writing…');
+    stage.classList.add('is-exiting');
+    await waitMs(280);
+    stage.classList.remove('is-exiting');
+    stage.innerHTML = '';
+    rollCounter(field.input, original.length, polished.length, 720);
+
+    for (var c = 0; c < chunks.length; c++) {
+      var wrap = document.createElement('span');
+      wrap.className = 'refine-chunk';
+      wrap.innerHTML = markPhrases(chunks[c], field.addPhrases, 'refine-add');
+      stage.appendChild(wrap);
+      void wrap.offsetWidth;
+      wrap.classList.add('is-in');
+      if (useStatus) setRefineStatus(field, 'Rewriting', c + 1, chunks.length);
+      liftStaging(field);
+      await waitMs(c === chunks.length - 1 ? 220 : 150);
+    }
+
+    field.input.value = polished;
+    if (useStatus) setRefineStatus(field, 'Finishing', chunks.length, chunks.length);
+    await waitMs(1100);
+    var adds = stage.querySelectorAll('.refine-add');
+    for (var a = 0; a < adds.length; a++) adds[a].classList.add('is-settled');
+    await waitMs(480);
+
+    box.classList.remove('is-staging');
+    stage.hidden = true;
+    stage.innerHTML = '';
+    stage.classList.remove('is-exiting');
+    box.style.minHeight = '';
+    autoSize(field.input);
+    syncCounter(field.input);
+    hideRefineStatus(field);
+
+    refining = false;
+    syncSaveBtn();
+    finishCompareMode(field);
+  }
+
+  async function startSkeletonRefine(field) {
+    refining = true;
+    syncSaveBtn();
+    hideKeyboard();
+    hideDoneToastNow();
+
+    var original = field.input.value;
+    var polished = field.polish(original);
+    var box = field.input.closest('.textarea-box');
+    var stage = field.stage;
+    var btn = field.btn;
+
+    btn.classList.add('is-busy');
+    btn.classList.remove('is-compare');
+    setRefineLabel(field, 'AI Refine');
+
+    async function finishLikeClassic() {
+      var fadingBones = field.bones && !field.bones.hidden;
+      box.classList.add('is-v4-reveal');
+      await tweenBoxHeight(box, function () {
+        if (fadingBones) field.bones.classList.add('is-exiting');
+        box.classList.remove('is-staging', 'is-scanning', 'is-boning', 'is-v4-run');
+        box.style.minHeight = '';
+        stage.hidden = true;
+        stage.innerHTML = '';
+        stage.classList.remove('is-exiting');
+        field.input.value = polished;
+        field.input.style.height = 'auto';
+        void field.input.offsetHeight;
+        autoSize(field.input);
+        btn.style.transition = 'none';
+        btn.classList.add('is-visible');
+        void btn.offsetHeight;
+        btn.style.transition = '';
+      }, 400);
+      rollCounter(field.input, original.length, polished.length, 400);
+      if (fadingBones) await waitMs(400);
+      hideBones(field);
+      window.setTimeout(function () {
+        box.classList.remove('is-v4-reveal');
+      }, 80);
+      btn.classList.remove('is-busy');
+      setRefineLabel(field, 'AI Refine');
+      refining = false;
+      syncSaveBtn();
+      syncRefineBtns();
+      await waitMs(80);
+      showDoneToast('Refined successfully.');
+    }
+
+    if (reduceMotion() || original === polished) {
+      await finishLikeClassic();
+      return;
+    }
+
+    box.classList.add('is-staging', 'is-scanning', 'is-v4-run');
+    box.style.minHeight = box.getBoundingClientRect().height + 'px';
+    btn.classList.remove('is-visible');
+    stage.hidden = false;
+    stage.classList.remove('is-exiting');
+    stage.textContent = '';
+    stage.style.setProperty('--scan-y', '0px');
+    var copy = document.createElement('span');
+    copy.className = 'refine-scan-copy';
+    copy.textContent = original;
+    var beam = document.createElement('span');
+    beam.className = 'refine-scan-beam';
+    stage.appendChild(copy);
+    stage.appendChild(beam);
+    liftStaging(field);
+    await new Promise(function (resolve) {
+      requestAnimationFrame(function () {
+        var run = Math.max(copy.offsetHeight, 48);
+        var dur = Math.max(900, Math.min(1600, 680 + run * 3.5));
+        var start = performance.now();
+        function tick(now) {
+          var t = Math.min(1, (now - start) / dur);
+          var e = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+          var y = run * e;
+          stage.style.setProperty('--scan-y', y + 'px');
+          beam.style.transform = 'translate3d(0,' + y + 'px,0)';
+          var edge = t < 0.12 ? t / 0.12 : 1;
+          beam.style.opacity = String(edge * edge * (3 - 2 * edge));
+          if (t < 1) requestAnimationFrame(tick);
+          else resolve();
+        }
+        requestAnimationFrame(tick);
+      });
+    });
+    stage.classList.add('is-exiting');
+    await waitMs(160);
+    await tweenBoxHeight(box, function () {
+      box.classList.remove('is-scanning');
+      stage.classList.remove('is-exiting');
+      stage.innerHTML = '';
+      fillBones(field, polished);
+      field.bones.hidden = false;
+      field.bones.classList.remove('is-exiting', 'is-in');
+      box.classList.add('is-boning');
+    });
+    void field.bones.offsetWidth;
+    field.bones.classList.add('is-in');
+    liftStaging(field);
+    await waitMs(1300);
+    await finishLikeClassic();
+  }
+
+  function startClassicRefine(field) {
+    refining = true;
+    syncSaveBtn();
+    hideDoneToastNow();
+    clearTimeout(workingExitTimer);
+    refinePct.textContent = '0%';
+    refineToast.setAttribute('aria-hidden', 'false');
+    toastEnter(refineToast, 'is-open');
+
+    var start = performance.now();
+    function tick(now) {
+      if (!refining) return;
+      var p = Math.min(1, (now - start) / REFINE_MS);
+      var eased = 1 - Math.pow(1 - p, 1.6);
+      refinePct.textContent = Math.round(eased * 100) + '%';
+      if (p < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        refinePct.textContent = '100%';
+        tweenBoxHeight(field.input.closest('.textarea-box'), function () {
+          field.input.value = field.polish(field.input.value);
+          autoSize(field.input);
+          syncCounter(field.input);
+        }, 400);
+        syncRefineBtns();
+        setTimeout(function () {
+          workingExitTimer = toastExit(refineToast, 'is-open', function () {
+            refineToast.setAttribute('aria-hidden', 'true');
+            refining = false;
+            syncSaveBtn();
+            showDoneToast('Refined successfully.');
+          });
+        }, 160);
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  window.playAnnotToastDemo = function () {
+    if (refining) return;
+    hideDoneToastNow();
+    clearTimeout(workingExitTimer);
+    refinePct.textContent = '0%';
+    refineToast.setAttribute('aria-hidden', 'false');
+    toastEnter(refineToast, 'is-open');
+    var start = performance.now();
+    function tick(now) {
+      var p = Math.min(1, (now - start) / 900);
+      refinePct.textContent = Math.round((1 - Math.pow(1 - p, 1.6)) * 100) + '%';
+      if (p < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        refinePct.textContent = '100%';
+        workingExitTimer = toastExit(refineToast, 'is-open', function () {
+          refineToast.setAttribute('aria-hidden', 'true');
+          showDoneToast('Refined successfully.');
+        });
+      }
+    }
+    requestAnimationFrame(tick);
+  };
+
+  window.playAnnotShowMoreDemo = function () {
+    var card = document.querySelector('[data-toggle-more]:not(.is-short)');
+    if (card) card.click();
+  };
+
+  window.playAnnotRefineAppearDemo = function () {
+    var phone = document.getElementById('phone');
+    if (window._refineAppearDemo) return;
+    window._refineAppearDemo = true;
+
+    function play() {
+      var btns = Array.prototype.filter.call(document.querySelectorAll('[data-refine]'), function (btn) {
+        var box = btn.closest('.textarea-box');
+        var input = box && box.querySelector('textarea');
+        return !!(input && input.value.trim());
+      });
+      if (!btns.length) {
+        window._refineAppearDemo = false;
+        return;
+      }
+      var firstBox = btns[0].closest('.textarea-box');
+      if (firstBox && firstBox.scrollIntoView) firstBox.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      Promise.all(btns.map(function (btn) {
+        return setRefineShown(btn, false, 280);
+      })).then(function () {
+        return waitMs(160);
+      }).then(function () {
+        return Promise.all(btns.map(function (btn) {
+          return setRefineShown(btn, true, 280);
+        }));
+      }).then(function () {
+        if (btns[0].scrollIntoView) btns[0].scrollIntoView({ block: 'nearest' });
+        window._refineAppearDemo = false;
+      });
+    }
+
+    if (phone && !phone.classList.contains('is-editing')) {
+      var editBtn = document.getElementById('edit-character-btn');
+      if (editBtn) editBtn.click();
+      setTimeout(play, 560);
+    } else {
+      play();
+    }
+  };
+
+  window.playAnnotRefineGrowDemo = function () {
+    var phone = document.getElementById('phone');
+    if (window._refineGrowDemo || refining) return;
+    window._refineGrowDemo = true;
+
+    function play() {
+      var boxes = Array.prototype.filter.call(document.querySelectorAll('.textarea-box'), function (box) {
+        var area = box.querySelector('textarea');
+        return !!(area && area.value.trim()) && !box.classList.contains('is-staging');
+      });
+      if (!boxes.length) {
+        window._refineGrowDemo = false;
+        return;
+      }
+      if (boxes[0].scrollIntoView) boxes[0].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      Promise.all(boxes.map(function (box) {
+        var area = box.querySelector('textarea');
+        var from = area.value;
+        var btn = box.querySelector('[data-refine]');
+        var field = btn && refineFields[btn.dataset.refine];
+        var next = field ? field.polish(from) : from;
+        if (next === from) {
+          next = from.split(/[.。]/)[0].trim() || from.slice(0, Math.max(48, Math.floor(from.length / 2)));
+          if (next === from) next = from + '\n';
+        }
+        return tweenBoxHeight(box, function () {
+          area.value = next;
+          autoSize(area);
+          syncCounter(area);
+        }, 400).then(function () {
+          return waitMs(280);
+        }).then(function () {
+          return tweenBoxHeight(box, function () {
+            area.value = from;
+            autoSize(area);
+            syncCounter(area);
+          }, 400);
+        });
+      })).then(function () {
+        window._refineGrowDemo = false;
+      }, function () {
+        window._refineGrowDemo = false;
+      });
+    }
+
+    if (phone && !phone.classList.contains('is-editing')) {
+      var editBtn = document.getElementById('edit-character-btn');
+      if (editBtn) editBtn.click();
+      setTimeout(play, 560);
+    } else {
+      play();
+    }
+  };
+
+  Object.keys(refineFields).forEach(function (key) {
+    var field = refineFields[key];
+    field.btn = document.querySelector('[data-refine="' + key + '"]');
+    field.stage = field.input.closest('.textarea-box').querySelector('.refine-stage');
+    field.bones = field.input.closest('.textarea-box').querySelector('.refine-bones');
+    field.status = field.input.closest('.textarea-box').querySelector('.refine-status');
+    field.original = '';
+    field.polished = '';
+    field.holding = false;
+    field.holdRestoreTimer = 0;
+    field.btn.addEventListener('pointerdown', function (e) {
+      if (!field.btn.classList.contains('is-compare')) return;
+      e.preventDefault();
+      field.btn.setPointerCapture(e.pointerId);
+      beginHoldCompare(field);
+    });
+    field.btn.addEventListener('pointerup', function () {
+      if (field.btn.classList.contains('is-compare')) endHoldCompare(field);
+    });
+    field.btn.addEventListener('pointercancel', function () {
+      if (field.btn.classList.contains('is-compare')) endHoldCompare(field);
+    });
+  });
+
+  document.querySelectorAll('.explore-pill').forEach(function (btn) {
+    btn.addEventListener('click', syncExploreCompareChrome);
+  });
+
+  function syncSaveBtn() {
+    var empty =
+      !nameInput.value.trim() ||
+      !descInput.value.trim() ||
+      !styleInput.value.trim();
+    saveBtn.disabled = empty || refining;
+  }
+
+  function setRefineShown(btn, show, ms) {
+    if (!btn) return Promise.resolve();
+    var should = !!show;
+    if (btn.classList.contains('is-visible') === should) return Promise.resolve();
+    var box = btn.closest('.textarea-box');
+    if (!box) {
+      btn.classList.toggle('is-visible', should);
+      return Promise.resolve();
+    }
+    return tweenBoxHeight(box, function () {
+      btn.classList.toggle('is-visible', should);
+    }, ms == null ? 280 : ms);
+  }
+
+  function syncRefineBtns(opts) {
+    var tween = opts && opts.tween;
+    document.querySelectorAll('[data-refine]').forEach(function (btn) {
+      var box = btn.closest('.textarea-box');
+      if (box && (box.classList.contains('is-staging') || box.classList.contains('is-v4-run'))) return;
+      var field = refineFields[btn.dataset.refine];
+      var show = !!(field && field.input.value.trim().length > 0);
+      if (tween) {
+        if (refining) return;
+        setRefineShown(btn, show, 280);
+        return;
+      }
+      if (btn.classList.contains('is-visible') === show) return;
+      btn.classList.toggle('is-visible', show);
+    });
+  }
+
+  function openEdit() {
+    phone.classList.remove('is-sheet-dragging');
+    phone.style.removeProperty('--recede');
+    phone.classList.add('is-editing');
+    editLayer.classList.add('is-open');
+    autoSizeAll();
+  }
+
+  function closeEdit() {
+    if (refining) return;
+    if (closeTopDialog()) return;
+    editSheet.classList.remove('is-dragging');
+    editSheet.style.transform = '';
+    phone.classList.remove('is-sheet-dragging');
+    var recede = getComputedStyle(phone).getPropertyValue('--recede').trim();
+    if (recede && recede !== '0' && recede !== '1') {
+      phone.style.setProperty('--recede', recede);
+    }
+    phone.classList.remove('is-editing');
+    hideKeyboard();
+    editLayer.classList.remove('is-open');
+    requestAnimationFrame(function () {
+      phone.style.removeProperty('--recede');
+    });
+  }
+
+  document.getElementById('edit-character-btn').addEventListener('click', function (e) {
+    e.stopPropagation();
+    openEdit();
+  });
+
+  document.querySelectorAll('[data-close-edit]').forEach(function (el) {
+    el.addEventListener('click', function (e) {
+      e.stopPropagation();
+      closeEdit();
+    });
+  });
+
+  document.getElementById('edit-save').addEventListener('click', function () {
+    if (refining || saveBtn.disabled) return;
+    var name = nameInput.value.trim() || 'Elyn Shadowwind';
+    document.querySelector('.char-name').textContent = name;
+    document.querySelectorAll('.text-card-body')[0].textContent = descInput.value;
+    if (styleInput.value.trim()) {
+      document.querySelectorAll('.text-card-body')[1].textContent = styleInput.value;
+    }
+    document.querySelectorAll('[data-toggle-more]').forEach(syncCardOverflow);
+    closeEdit();
+  });
+
+  document.querySelectorAll('[data-refine]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var field = refineFields[btn.dataset.refine];
+      if (btn.classList.contains('is-compare')) return;
+      if (refining || !field || !field.input.value.trim()) return;
+      refineTarget = btn.dataset.refine;
+      if (isSurpriseExplore()) {
+        refineTitle.textContent = field.titleV2;
+        refineBody.textContent = field.promptV2;
+      } else {
+        refineTitle.textContent = 'Refine with AI?';
+        refineBody.textContent = field.prompt;
+      }
+      hideKeyboard();
+      refineDialog.classList.add('is-open');
+    });
+  });
+
+  document.querySelectorAll('[data-close-refine]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      refineDialog.classList.remove('is-open');
+    });
+  });
+
+  document.getElementById('delete-character-btn').addEventListener('click', function () {
+    if (phone.classList.contains('is-editing')) return;
+    var name = document.querySelector('.char-name').textContent.trim() || 'this character';
+    document.getElementById('delete-title').textContent = 'Delete ' + name + '?';
+    deleteDialog.classList.add('is-open');
+  });
+
+  document.querySelectorAll('[data-close-delete]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      deleteDialog.classList.remove('is-open');
+    });
+  });
+
+  document.getElementById('delete-confirm').addEventListener('click', function () {
+    deleteDialog.classList.remove('is-open');
+    phone.classList.add('is-deleted');
+    setTimeout(function () {
+      showDoneToast('Character deleted.');
+    }, 120);
+  });
+
+  document.getElementById('refine-confirm').addEventListener('click', function () {
+    if (refining) return;
+    var field = refineFields[refineTarget];
+    if (!field) return;
+    refineDialog.classList.remove('is-open');
+    if (isSkeletonExplore()) {
+      startSkeletonRefine(field);
+    } else if (isSurpriseExplore()) {
+      startSurpriseRefine(field);
+    } else {
+      startClassicRefine(field);
+    }
+  });
+
+  document.querySelectorAll('[data-clear]').forEach(function (btn) {
+    btn.addEventListener('mousedown', function (e) {
+      e.preventDefault();
+    });
+    btn.addEventListener('click', function () {
+      var field = document.getElementById(btn.dataset.clear);
+      field.value = '';
+      field.focus();
+      syncNameField();
+      syncSaveBtn();
+    });
+  });
+
+  var nameField = document.getElementById('name-field');
+
+  function syncNameField() {
+    nameField.classList.toggle('is-filled', nameInput.value.length > 0);
+  }
+
+  nameInput.addEventListener('input', function () {
+    syncNameField();
+    syncSaveBtn();
+  });
+
+  nameField.addEventListener('click', function (e) {
+    if (!e.target.closest('.input-clear')) nameInput.focus();
+  });
+
+  (function enableSwipeToClose() {
+    var handle = editSheet.querySelector('.edit-panel > .handle');
+    var startY = 0;
+    var lastY = 0;
+    var lastT = 0;
+    var vel = 0;
+    var dragging = false;
+
+    function rubber(dy) {
+      if (dy <= 0) return 0;
+      if (dy < 140) return dy;
+      return 140 + (dy - 140) * 0.28;
+    }
+
+    handle.addEventListener('pointerdown', function (e) {
+      if (isDialogOpen() || refining) return;
+      dragging = true;
+      startY = lastY = e.clientY;
+      lastT = performance.now();
+      vel = 0;
+      phone.classList.add('is-sheet-dragging');
+      editSheet.classList.add('is-dragging');
+      handle.setPointerCapture(e.pointerId);
+    });
+
+    handle.addEventListener('pointermove', function (e) {
+      if (!dragging) return;
+      var now = performance.now();
+      var dt = now - lastT;
+      if (dt > 0) vel = (e.clientY - lastY) / dt;
+      lastY = e.clientY;
+      lastT = now;
+      var dy = rubber(Math.max(0, e.clientY - startY));
+      editSheet.style.transform = 'translateY(' + dy + 'px)';
+      phone.style.setProperty('--recede', String(Math.max(0, 1 - dy / 280)));
+    });
+
+    function endDrag(e) {
+      if (!dragging) return;
+      dragging = false;
+      editSheet.classList.remove('is-dragging');
+      var dy = rubber(Math.max(0, e.clientY - startY));
+      if (dy > 90 || vel > 0.85) {
+        closeEdit();
+      } else {
+        phone.classList.remove('is-sheet-dragging');
+        phone.style.removeProperty('--recede');
+        editSheet.style.transform = '';
+      }
+    }
+
+    handle.addEventListener('pointerup', endDrag);
+    handle.addEventListener('pointercancel', endDrag);
+  })();
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (closeTopDialog()) return;
+    if (phone.classList.contains('is-keyboard')) {
+      hideKeyboard();
+      return;
+    }
+    if (phone.classList.contains('is-editing')) closeEdit();
+  });
+
+  function autoSize(area) {
+    area.style.height = 'auto';
+    area.style.height = area.scrollHeight + 'px';
+  }
+
+  function syncCounter(area) {
+    document.getElementById(area.dataset.counter).textContent =
+      area.value.length + '/' + area.dataset.max;
+  }
+
+  var textareas = document.querySelectorAll('.textarea-box textarea');
+
+  function autoSizeAll() {
+    textareas.forEach(function (area) {
+      autoSize(area);
+      syncCounter(area);
+    });
+    syncRefineBtns();
+    syncSaveBtn();
+  }
+
+  textareas.forEach(function (area) {
+    area.addEventListener('input', function () {
+      var f = fieldFromInput(area);
+      if (f && (f.original || f.polished) && !f.holding) {
+        if (!area.value.trim() || (area.value !== f.polished && area.value !== f.original)) {
+          clearCompareMode(f);
+        }
+      }
+      var box = area.closest('.textarea-box');
+      var btn = box && box.querySelector('[data-refine]');
+      var show = !!area.value.trim();
+      var vis = !!(btn && btn.classList.contains('is-visible'));
+      var staging = box && (box.classList.contains('is-staging') || box.classList.contains('is-v4-run'));
+      if (btn && box && !staging && !refining && vis !== show) {
+        tweenBoxHeight(box, function () {
+          autoSize(area);
+          btn.classList.toggle('is-visible', show);
+        }, 280).then(function () {
+          if (focusedInput === area) liftField(area);
+        });
+      } else {
+        autoSize(area);
+        syncRefineBtns();
+      }
+      syncCounter(area);
+      syncSaveBtn();
+      if (focusedInput === area) liftField(area);
+    });
+    area.closest('.textarea-box').addEventListener('click', function (e) {
+      if (e.target.closest('[data-refine]')) return;
+      if (e.target.closest('.textarea-box').classList.contains('is-staging')) return;
+      area.focus();
+    });
+  });
+
+  var focusedInput = null;
+  var kbShift = false;
+  var KB_H = 310;
+
+  function hideKeyboard() {
+    phone.classList.remove('is-keyboard');
+    kb.setAttribute('aria-hidden', 'true');
+    kbShift = false;
+    if (focusedInput && document.activeElement === focusedInput) focusedInput.blur();
+    focusedInput = null;
+  }
+
+  function liftField(el) {
+    var box = el.closest('.textarea-wrap') || el.closest('.field') || el;
+    requestAnimationFrame(function () {
+      var phoneRect = phone.getBoundingClientRect();
+      var kbTop = phoneRect.top + 812 - KB_H;
+      var rect = box.getBoundingClientRect();
+      var overflow = rect.bottom - (kbTop - 16);
+      if (overflow > 0) editBody.scrollTop += overflow;
+    });
+  }
+
+  function showKeyboard(el) {
+    if (isDialogOpen() || refining) return;
+    focusedInput = el;
+    phone.classList.add('is-keyboard');
+    kb.setAttribute('aria-hidden', 'false');
+    liftField(el);
+    setTimeout(function () { liftField(el); }, 40);
+    setTimeout(function () { liftField(el); }, 380);
+  }
+
+  function insertAtCaret(text) {
+    var el = focusedInput;
+    if (!el) return;
+    var start = el.selectionStart || 0;
+    var end = el.selectionEnd || 0;
+    var max = el.maxLength > 0 ? el.maxLength : 100000;
+    var next = el.value.slice(0, start) + text + el.value.slice(end);
+    if (next.length > max) {
+      text = text.slice(0, Math.max(0, max - el.value.length + (end - start)));
+      next = el.value.slice(0, start) + text + el.value.slice(end);
+    }
+    el.value = next;
+    var caret = start + text.length;
+    el.setSelectionRange(caret, caret);
+    el.dispatchEvent(new Event('input'));
+  }
+
+  function deleteAtCaret() {
+    var el = focusedInput;
+    if (!el) return;
+    var start = el.selectionStart || 0;
+    var end = el.selectionEnd || 0;
+    if (start === end) {
+      if (start === 0) return;
+      el.value = el.value.slice(0, start - 1) + el.value.slice(end);
+      el.setSelectionRange(start - 1, start - 1);
+    } else {
+      el.value = el.value.slice(0, start) + el.value.slice(end);
+      el.setSelectionRange(start, start);
+    }
+    el.dispatchEvent(new Event('input'));
+  }
+
+  editBody.addEventListener('focusin', function (e) {
+    if (e.target.matches('input, textarea')) showKeyboard(e.target);
+  });
+
+  editBody.addEventListener('focusout', function () {
+    setTimeout(function () {
+      var active = document.activeElement;
+      if (active && (kb.contains(active) || (editBody.contains(active) && active.matches('input, textarea')))) return;
+      phone.classList.remove('is-keyboard');
+      kb.setAttribute('aria-hidden', 'true');
+      kbShift = false;
+      focusedInput = null;
+    }, 0);
+  });
+
+  kb.addEventListener('mousedown', function (e) {
+    e.preventDefault();
+  });
+
+  kb.addEventListener('click', function (e) {
+    var key = e.target.closest('.kb-key');
+    if (!key || !focusedInput) return;
+    var action = key.dataset.action;
+    if (action === 'shift') {
+      kbShift = !kbShift;
+      return;
+    }
+    if (action === 'delete') {
+      deleteAtCaret();
+      return;
+    }
+    if (action === 'return') {
+      if (focusedInput.tagName === 'TEXTAREA') {
+        insertAtCaret('\n');
+      } else {
+        hideKeyboard();
+      }
+      return;
+    }
+    if (action === 'noop') return;
+    if (key.dataset.letter) {
+      insertAtCaret(kbShift ? key.dataset.letter.toUpperCase() : key.dataset.letter);
+      kbShift = false;
+      return;
+    }
+    if (key.dataset.insert != null) insertAtCaret(key.dataset.insert);
+  });
+
+  autoSizeAll();
+</script>
+</body>
+</html>
