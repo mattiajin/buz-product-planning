@@ -34,11 +34,13 @@
     --s-radius: 16px;
     --s-nested: 8px;
     --s-pill: 100px;
-    --s-ease: cubic-bezier(0.32, 0.72, 0, 1);
   }
 
   html, body { min-height: 100%; }
   body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
     background: var(--s-page);
     color: var(--s-ink);
     font-family: 'Nunito', sans-serif;
@@ -46,51 +48,46 @@
   }
 
   .cover {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    width: 100%;
     max-width: 480px;
-    margin: 0 auto;
+    margin: auto;
     padding: 48px 24px;
   }
 
-  .cover-head {
-    display: flex;
-    flex-direction: column;
-    gap: var(--s-8);
-    margin-bottom: var(--s-24);
-  }
   .cover-title {
-    font-weight: 700;
-    font-size: var(--s-ui);
-    line-height: var(--s-lh);
+    padding: 0 var(--s-8);
+    font-weight: 800;
+    font-size: 20px;
+    line-height: 1.2;
     letter-spacing: var(--s-track);
     color: var(--s-ink);
   }
   .cover-lead {
+    margin-top: var(--s-8);
+    padding: 0 var(--s-8);
     font-weight: 400;
     font-size: var(--s-meta);
-    line-height: 1.45;
+    line-height: var(--s-lh);
     letter-spacing: var(--s-track);
     color: var(--s-dim);
   }
 
-  .cover-block {
-    display: flex;
-    flex-direction: column;
-    gap: var(--s-8);
-  }
-  .cover-block + .cover-block {
-    margin-top: var(--s-24);
-  }
   .cover-kicker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: var(--s-24) 0 var(--s-8);
     padding: 0 var(--s-8);
     font-weight: 700;
     font-size: var(--s-meta);
     line-height: var(--s-lh);
     letter-spacing: var(--s-track);
     color: var(--s-body);
+  }
+  .cover-kicker .studio-ico {
+    width: 12px;
+    height: 12px;
+    color: var(--s-quiet);
   }
 
   .cover-card {
@@ -99,7 +96,13 @@
     padding: var(--s-8);
   }
 
-  .iter {
+  .iter + .iter {
+    margin-top: var(--s-8);
+    padding-top: var(--s-16);
+    border-top: 0.5px solid var(--s-line);
+  }
+
+  .iter-main {
     display: flex;
     gap: var(--s-12);
     align-items: flex-start;
@@ -109,8 +112,8 @@
     color: inherit;
     transition: background 0.18s ease;
   }
-  .iter:hover { background: var(--s-raise); }
-  .iter:focus-visible {
+  .iter-main:hover { background: var(--s-raise); }
+  .iter-main:focus-visible {
     outline: 2px solid var(--s-ink);
     outline-offset: 2px;
   }
@@ -133,59 +136,113 @@
   }
 
   .iter-body { flex: 1; min-width: 0; }
+  .iter-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--s-12);
+  }
   .iter-title {
+    min-width: 0;
     font-weight: 700;
     font-size: var(--s-ui);
     line-height: var(--s-lh);
     letter-spacing: var(--s-track);
     color: var(--s-ink);
   }
+  .iter-date {
+    flex-shrink: 0;
+    font-weight: 700;
+    font-size: var(--s-meta);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-quiet);
+  }
   .iter-desc {
     margin-top: var(--s-4);
     font-weight: 400;
-    font-size: var(--s-ui);
-    line-height: 1.45;
+    font-size: var(--s-meta);
+    line-height: var(--s-lh);
     letter-spacing: var(--s-track);
-    color: var(--s-body);
+    color: var(--s-dim);
   }
-
-  .iter-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s-4);
-    margin-top: var(--s-8);
-  }
-  .pill {
-    display: inline-flex;
-    align-items: center;
-    height: 20px;
-    padding: 0 var(--s-8);
-    border-radius: var(--s-pill);
+  .iter-status {
+    margin-top: var(--s-4);
     font-weight: 700;
     font-size: var(--s-meta);
+    line-height: var(--s-lh);
     letter-spacing: var(--s-track);
-  }
-  .pill-done {
-    background: var(--s-olive);
-    color: var(--s-lime);
-  }
-  .pill-wip {
-    background: var(--s-raise);
     color: var(--s-dim);
+  }
+  .iter-status .is-wip { color: var(--s-quiet); }
+
+  .cover-fold {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    margin: var(--s-24) 0 0;
+    padding: 0 var(--s-8);
+    border: none;
+    background: transparent;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: var(--s-meta);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-body);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .cover-fold:hover { color: var(--s-ink); }
+  .cover-fold:focus-visible {
+    outline: 2px solid var(--s-ink);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  .cover-fold .studio-ico {
+    width: 12px;
+    height: 12px;
+    color: var(--s-quiet);
+  }
+  .cover-fold .cover-fold-chev {
+    transition: transform 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .cover-fold.is-open .cover-fold-chev { transform: rotate(180deg); }
+
+  .cover-fold-slot {
+    display: grid;
+    grid-template-rows: 0fr;
+    margin-top: 0;
+    transition: grid-template-rows 0.32s cubic-bezier(0.32, 0.72, 0, 1), margin-top 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+  .cover-fold.is-open + .cover-fold-slot {
+    grid-template-rows: 1fr;
+    margin-top: var(--s-8);
+  }
+  .cover-fold-slot > .cover-fold-clip {
+    min-height: 0;
+    overflow: hidden;
   }
 
-  .iter-go {
-    flex-shrink: 0;
-    align-self: center;
-    width: 20px;
-    height: 20px;
-    color: var(--s-dim);
+  .doc-group + .doc-group {
+    margin-top: var(--s-4);
+    padding-top: calc(var(--s-8) + var(--s-4));
+    border-top: 0.5px solid var(--s-line);
   }
-  .iter:hover .iter-go { color: var(--s-ink); }
+  .doc-group-kicker {
+    padding: var(--s-8) var(--s-8) var(--s-4);
+    font-weight: 700;
+    font-size: var(--s-meta);
+    line-height: var(--s-lh);
+    letter-spacing: var(--s-track);
+    color: var(--s-quiet);
+  }
 
   .doc {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
+    justify-content: space-between;
     gap: var(--s-12);
     padding: var(--s-8);
     border-radius: var(--s-nested);
@@ -198,119 +255,135 @@
     outline: 2px solid var(--s-ink);
     outline-offset: 2px;
   }
-  .doc-ico {
-    flex-shrink: 0;
-    width: 16px;
-    height: 16px;
-    margin-top: 1px;
-    color: var(--s-quiet);
-    transition: color 0.18s ease;
-  }
-  .doc:hover .doc-ico { color: var(--s-dim); }
-  .doc-body {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--s-4);
-  }
   .doc-title {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-weight: 700;
-    font-size: var(--s-ui);
+    font-size: var(--s-meta);
     line-height: var(--s-lh);
     letter-spacing: var(--s-track);
-    color: var(--s-ink);
+    color: var(--s-body);
   }
+  .doc-ico {
+    width: 12px;
+    height: 12px;
+    color: var(--s-quiet);
+  }
+  .doc:hover .doc-title { color: var(--s-ink); }
+  .doc:hover .doc-ico { color: var(--s-dim); }
   .doc-desc {
+    flex: 1;
+    min-width: 0;
     font-weight: 400;
     font-size: var(--s-meta);
     line-height: var(--s-lh);
     letter-spacing: var(--s-track);
-    color: var(--s-dim);
-  }
-  .doc-type {
-    flex-shrink: 0;
-    align-self: center;
-    font-weight: 700;
-    font-size: var(--s-meta);
-    line-height: var(--s-lh);
-    letter-spacing: var(--s-track);
     color: var(--s-quiet);
+    text-align: right;
   }
 
   @media (max-width: 520px) {
-    .cover { padding: 32px 16px; }
+    .cover { padding: 32px 16px 40px; }
   }
 </style>
 </head>
 <body>
   <main class="cover">
-    <header class="cover-head">
-      <h1 class="cover-title">设计与产品交付</h1>
-      <p class="cover-lead">打开一项就能点原型、看需求、对照标注。</p>
-    </header>
-    <section class="cover-block">
-      <p class="cover-kicker">迭代 · 2026.9.4</p>
-      <div class="cover-card">
-        <a class="iter" href="01-ai-character/index.html">
+    <h1 class="cover-title">设计与产品交付</h1>
+    <p class="cover-lead">打开一项即可点原型、看标注。</p>
+    <p class="cover-kicker">
+      <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>
+      原型
+    </p>
+    <div class="cover-card">
+      <article class="iter">
+        <a class="iter-main" href="01-ai-character/index.html">
           <span class="iter-num">1</span>
           <div class="iter-body">
-            <p class="iter-title">AI Character</p>
-            <p class="iter-desc">资料页、编辑叠层、AI 润色。</p>
-            <div class="iter-meta">
-              <span class="pill pill-done">设计已定</span>
-              <span class="pill pill-wip">PRD 待补</span>
+            <div class="iter-head">
+              <p class="iter-title">AI Character 资料与编辑</p>
+              <time class="iter-date" datetime="2026-09-04">2026.9.4</time>
             </div>
+            <p class="iter-desc">资料页、编辑叠层、AI 润色</p>
+            <p class="iter-status">设计已定，<span class="is-wip">PRD 待补</span></p>
           </div>
-          <svg class="iter-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
         </a>
+      </article>
+      <article class="iter">
+        <a class="iter-main" href="02-ve-tab/index.html">
+          <span class="iter-num">2</span>
+          <div class="iter-body">
+            <div class="iter-head">
+              <p class="iter-title">Voice Filter Tab 交互优化</p>
+              <time class="iter-date" datetime="2026-08-17">2026.8.17</time>
+            </div>
+            <p class="iter-desc">Tab 与 Filter 跟手切换</p>
+            <p class="iter-status">设计已定，<span class="is-wip">PRD 待补</span></p>
+          </div>
+        </a>
+      </article>
+    </div>
+    <button type="button" class="cover-fold" aria-expanded="false" aria-controls="cover-docs">
+      <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+      文档
+      <svg class="studio-ico cover-fold-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="cover-fold-slot" id="cover-docs">
+      <div class="cover-fold-clip">
+        <div class="cover-card">
+          <div class="doc-group">
+            <p class="doc-group-kicker">1 · AI Character 资料与编辑</p>
+            <a class="doc" href="01-ai-character/docs/handoff.md">
+              <span class="doc-title"><svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>交接</span>
+              <span class="doc-desc">已定和待补</span>
+            </a>
+            <a class="doc" href="01-ai-character/docs/prd.md">
+              <span class="doc-title"><svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>PRD</span>
+              <span class="doc-desc">和右栏同一份</span>
+            </a>
+            <a class="doc" href="01-ai-character/docs/motion.md">
+              <span class="doc-title"><svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/></svg>动效</span>
+              <span class="doc-desc">时长、曲线、角标</span>
+            </a>
+            <a class="doc" href="01-ai-character/docs/stacked_bottom_sheet.md">
+              <span class="doc-title"><svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>叠层</span>
+              <span class="doc-desc">两层 sheet 怎么叠</span>
+            </a>
+          </div>
+          <div class="doc-group">
+            <p class="doc-group-kicker">2 · Voice Filter Tab 交互优化</p>
+            <a class="doc" href="02-ve-tab/docs/prd.md">
+              <span class="doc-title"><svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>PRD</span>
+              <span class="doc-desc">待产品补</span>
+            </a>
+            <a class="doc" href="02-ve-tab/docs/ve_tab_animation.md">
+              <span class="doc-title"><svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/></svg>动效</span>
+              <span class="doc-desc">Tab、Filter、Toast</span>
+            </a>
+          </div>
+          <div class="doc-group">
+            <p class="doc-group-kicker">共用</p>
+            <a class="doc" href="docs/annot_shell.md">
+              <span class="doc-title"><svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M12 3v18"/></svg>标注壳</span>
+              <span class="doc-desc">左右栏怎么用</span>
+            </a>
+          </div>
+        </div>
       </div>
-    </section>
-    <section class="cover-block">
-      <p class="cover-kicker">文档</p>
-      <div class="cover-card">
-        <a class="doc" href="01-ai-character/docs/handoff.md">
-          <svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>
-          <span class="doc-body">
-            <span class="doc-title">交接</span>
-            <span class="doc-desc">给产品看的清单：已定什么、还差什么</span>
-          </span>
-          <span class="doc-type">.md</span>
-        </a>
-        <a class="doc" href="01-ai-character/docs/prd.md">
-          <svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
-          <span class="doc-body">
-            <span class="doc-title">PRD</span>
-            <span class="doc-desc">需求草稿，和原型右栏同一份</span>
-          </span>
-          <span class="doc-type">.md</span>
-        </a>
-        <a class="doc" href="01-ai-character/docs/motion.md">
-          <svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9"/><path d="m8 7 4 8"/><path d="m16 7-4 8"/><rect width="18" height="4" x="3" y="5" rx="1"/></svg>
-          <span class="doc-body">
-            <span class="doc-title">动效</span>
-            <span class="doc-desc">时长、曲线、角标对照</span>
-          </span>
-          <span class="doc-type">.md</span>
-        </a>
-        <a class="doc" href="01-ai-character/docs/stacked_bottom_sheet.md">
-          <svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.91a1 1 0 0 0 0-1.83Z"/><path d="M2 12a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 12"/><path d="M2 17a1 1 0 0 0 .58.91l8.6 3.91a2 2 0 0 0 1.65 0l8.58-3.9A1 1 0 0 0 22 17"/></svg>
-          <span class="doc-body">
-            <span class="doc-title">叠层</span>
-            <span class="doc-desc">两层 sheet 的尺寸与时序</span>
-          </span>
-          <span class="doc-type">.md</span>
-        </a>
-        <a class="doc" href="docs/annot_shell.md">
-          <svg class="doc-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
-          <span class="doc-body">
-            <span class="doc-title">标注壳</span>
-            <span class="doc-desc">共用版式：左右栏、开关、角标</span>
-          </span>
-          <span class="doc-type">.md</span>
-        </a>
-      </div>
-    </section>
+    </div>
   </main>
+  <script>
+    (function () {
+      var btn = document.querySelector('.cover-fold');
+      if (!btn) return;
+      btn.addEventListener('click', function () {
+        var open = btn.getAttribute('aria-expanded') !== 'true';
+        btn.classList.toggle('is-open', open);
+        btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    })();
+  </script>
 </body>
 </html>

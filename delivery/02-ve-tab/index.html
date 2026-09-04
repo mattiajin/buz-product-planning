@@ -1,0 +1,1423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Filter Tab 交互优化 · 设计与产品交付</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;1,400&family=Noto+Sans+JP:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/studio-shell.css">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  @font-face {
+    font-family: 'buz';
+    src: url('assets/fonts/buz.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: block;
+  }
+
+  html, body { min-height: 100%; }
+  body {
+    background: #111;
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+
+  .studio-seg button[data-lang="ja"] {
+    font-family: 'Noto Sans JP', 'Nunito', sans-serif;
+    letter-spacing: 0;
+  }
+  .tab-count-label {
+    position: relative;
+    z-index: 1;
+    flex: 1 0 0;
+    min-width: 28px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--s-ink);
+    font-family: 'Nunito', sans-serif;
+    font-size: var(--s-ui);
+    font-weight: 700;
+    letter-spacing: var(--s-track);
+  }
+
+  :root {
+    --ve-duration: 0.56s;
+    --ve-ease: cubic-bezier(0.25, 0.72, 0.22, 1);
+  }
+
+  @property --k {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 0;
+  }
+
+  html[lang="ja"] .ve-tab-label span,
+  html[lang="ja"] .filter-tag {
+    font-family: 'Noto Sans JP', 'Nunito', sans-serif;
+    letter-spacing: 0;
+  }
+
+  .phone {
+    position: relative;
+    width: 375px;
+    height: 812px;
+    overflow: hidden;
+    border-radius: 40px;
+    background: #1a1a1a;
+  }
+
+  .icon {
+    font-family: 'buz';
+    font-style: normal;
+    line-height: 1;
+  }
+
+  /* Tab + Filter List relative to Figma: tab y=4, list y=90 → 50px gap */
+  .filter-stage {
+    position: absolute;
+    left: 0;
+    top: 516px;
+    width: 375px;
+  }
+
+  /* VE-Tab (Figma 24346:30253) — 335×36 = padding 3 + item 30 + padding 3 */
+  .ve-tab {
+    position: relative;
+    left: 20px;
+    top: 0;
+    width: 335px;
+    height: 36px;
+    padding: 3px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    overflow: hidden;
+    border-radius: 100px;
+    background: #0d0d0d;
+    box-shadow: 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
+    max-width: 335px;
+    transition:
+      width var(--ve-duration) var(--ve-ease),
+      left var(--ve-duration) var(--ve-ease);
+  }
+
+  .ve-tab.is-dragging {
+    cursor: grabbing;
+  }
+
+  .ve-tab.is-dragging .ve-tab-item {
+    cursor: grabbing;
+  }
+
+  .ve-tab-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 30px;
+    width: max-content;
+    isolation: isolate;
+  }
+
+  .ve-tab-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 30px;
+    min-width: 110px;
+    max-width: 140px;
+    border-radius: 100px;
+    background: #3d3d3d;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .ve-tab-item {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-shrink: 0;
+    flex-grow: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    height: 30px;
+    min-width: 40px;
+    max-width: 140px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 100px;
+    background: transparent;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .ve-tab-item[hidden] {
+    display: none !important;
+  }
+
+  .ve-tab-item.is-active {
+    width: max-content;
+    min-width: 110px;
+    padding: 0 12px;
+    justify-content: center;
+  }
+
+  .ve-tab-label {
+    display: grid;
+    flex: 0 0 auto;
+    grid-template-columns: 0fr;
+    margin-left: 0;
+    opacity: 0;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  .ve-tab-item .icon {
+    flex-shrink: 0;
+    font-size: 20px;
+    color: #808080;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .ve-tab-item.is-active .icon {
+    color: #fff;
+  }
+
+  .ve-tab-item.is-active .ve-tab-label {
+    grid-template-columns: 1fr;
+    margin-left: 6px;
+    opacity: 1;
+  }
+
+  .ve-tab-label span {
+    overflow: hidden;
+    min-width: 0;
+    font-family: 'Nunito', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 130%;
+    letter-spacing: 1%;
+    color: #b3b3b3;
+    white-space: nowrap;
+  }
+
+  .ve-tab-item.is-active .ve-tab-label span {
+    color: #fff;
+  }
+
+  .ve-tab-row.is-animated {
+    transition: transform var(--ve-duration) var(--ve-ease);
+  }
+
+  .ve-tab-row.is-animated .ve-tab-indicator {
+    transition:
+      transform var(--ve-duration) var(--ve-ease),
+      width var(--ve-duration) var(--ve-ease);
+  }
+
+  .ve-tab-row.is-animated .ve-tab-item {
+    transition:
+      padding var(--ve-duration) var(--ve-ease),
+      min-width var(--ve-duration) var(--ve-ease);
+  }
+
+  .ve-tab-row.is-animated .ve-tab-item .icon {
+    transition: color var(--ve-duration) var(--ve-ease);
+  }
+
+  .ve-tab-row.is-animated .ve-tab-label {
+    transition:
+      grid-template-columns var(--ve-duration) var(--ve-ease),
+      margin-left var(--ve-duration) var(--ve-ease),
+      opacity var(--ve-duration) var(--ve-ease);
+  }
+
+  .ve-tab-row.is-animated .ve-tab-label span {
+    transition: color var(--ve-duration) var(--ve-ease);
+  }
+
+  /* Filter List (Figma 24346:30262) — 375×116, 50px below tab */
+  .filter-list {
+    position: relative;
+    margin-top: 20px;
+    padding-top: 30px;
+    width: 375px;
+    height: 146px;
+    overflow: hidden;
+    touch-action: none;
+    user-select: none;
+    cursor: grab;
+  }
+
+  .filter-list.is-dragging {
+    cursor: grabbing;
+  }
+
+  .filter-list-track {
+    display: flex;
+    align-items: center;
+    height: 116px;
+    width: max-content;
+    will-change: transform;
+  }
+
+  .filter-item {
+    --k: 0;
+    position: relative;
+    z-index: 0;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(60px + 56px * var(--k));
+    height: calc(60px + 56px * var(--k));
+    padding: calc(6px * (1 - var(--k)));
+    border: none;
+    background: transparent;
+    opacity: calc(0.5 + 0.5 * var(--k));
+    cursor: inherit;
+    -webkit-tap-highlight-color: transparent;
+    pointer-events: none;
+    transition: --k var(--ve-duration) var(--ve-ease);
+  }
+
+  .filter-list.is-dragging .filter-item {
+    transition: none;
+  }
+
+  .filter-slick {
+    display: block;
+    position: relative;
+    z-index: 1;
+    isolation: isolate;
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+    pointer-events: none;
+    opacity: 1;
+  }
+
+  .filter-slick::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 6px;
+    bottom: 6px;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.2);
+    opacity: 1;
+    transform: translateX(-50%) scaleX(0.6);
+    transform-origin: center;
+    pointer-events: none;
+  }
+
+  .filter-dot {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: calc(48px + 52px * var(--k));
+    height: calc(48px + 52px * var(--k));
+    border-radius: 100px;
+    background: var(--filter-bg);
+    overflow: hidden;
+  }
+
+  .filter-emoji {
+    font-size: calc(24px + 8px * var(--k));
+    line-height: 1;
+  }
+
+  .filter-item[data-mic] .filter-emoji {
+    position: absolute;
+    opacity: calc(1 - var(--k));
+  }
+
+  .filter-mic {
+    display: none;
+    font-size: calc(24px + 8px * var(--k));
+    color: var(--filter-fg, #895c13);
+    line-height: 1;
+  }
+
+  .filter-item[data-mic] .filter-mic {
+    display: block;
+    opacity: var(--k);
+  }
+
+  .filter-tag {
+    position: absolute;
+    left: 50%;
+    top: calc(-58px + 28px * var(--k));
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    height: 24px;
+    padding: 2px calc(8px * var(--k));
+    border-radius: 20px;
+    background: rgb(61 61 61 / var(--k));
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: calc(400 + 200 * var(--k));
+    line-height: 130%;
+    letter-spacing: 1%;
+    color: color-mix(in srgb, #808080 calc((1 - var(--k)) * 100%), var(--filter-bg) calc(var(--k) * 100%));
+    white-space: nowrap;
+    opacity: 0.9;
+    pointer-events: none;
+  }
+
+  .filter-wave {
+    display: block;
+    position: relative;
+    width: calc(14px * var(--k));
+    height: 14px;
+    margin-right: calc(3px * var(--k));
+    overflow: hidden;
+    flex-shrink: 0;
+    opacity: var(--k);
+  }
+
+  .filter-wave i {
+    position: absolute;
+    border-radius: 14px;
+    background: var(--filter-bg);
+  }
+
+  .filter-wave-l {
+    top: 27.78%;
+    bottom: 27.78%;
+    left: 5.56%;
+    right: 75%;
+  }
+
+  .filter-wave-m {
+    top: 9.72%;
+    bottom: 9.72%;
+    left: 40.28%;
+    right: 40.28%;
+  }
+
+  .filter-wave-r {
+    top: 27.78%;
+    bottom: 27.78%;
+    left: 75%;
+    right: 5.56%;
+  }
+
+  .ve-toast {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 10px 20px;
+    border-radius: 24px;
+    background: rgba(51, 51, 51, 0.5);
+    backdrop-filter: blur(50px);
+    -webkit-backdrop-filter: blur(50px);
+    transform: translate(-50%, calc(-50% + 8px));
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 0.22s var(--ve-ease),
+      transform 0.22s var(--ve-ease);
+  }
+
+  .ve-toast.is-on {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+
+  .ve-toast-icon {
+    flex-shrink: 0;
+    font-family: 'buz';
+    font-size: 24px;
+    font-style: normal;
+    line-height: 1;
+    color: #fff;
+  }
+
+  .ve-toast-text {
+    max-width: 179px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 130%;
+    letter-spacing: 0.14px;
+    color: #e0e0e0;
+  }
+
+  html[lang="ja"] .ve-toast-text {
+    font-family: 'Noto Sans JP', 'Nunito', sans-serif;
+    letter-spacing: 0;
+  }
+
+</style>
+</head>
+<body>
+
+<div class="studio is-annot is-spec" id="studio" data-annot="spec">
+  <nav class="studio-nav" aria-label="交付">
+    <a class="studio-nav-home" href="../index.html" aria-label="设计与产品交付">
+      <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    </a>
+    <span class="studio-nav-sep" aria-hidden="true"></span>
+    <div class="studio-nav-pick">
+      <button type="button" class="studio-nav-switch" aria-expanded="false" aria-haspopup="listbox" aria-controls="iter-menu">
+        <span class="studio-nav-num">2</span>
+        <span class="studio-nav-label">Voice Filter Tab 交互优化</span>
+        <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+      <div class="studio-nav-menu" id="iter-menu" role="listbox">
+        <div class="studio-nav-menu-clip">
+        <div class="studio-nav-card">
+        <a class="studio-nav-item" role="option" aria-selected="false" href="../01-ai-character/index.html">
+          <span class="studio-nav-num">1</span>
+          <span class="studio-nav-item-title">AI Character 资料与编辑</span>
+          <time class="studio-nav-item-date" datetime="2026-09-04">2026.9.4</time>
+        </a>
+        <span class="studio-nav-item is-on" role="option" aria-selected="true" aria-current="page">
+          <span class="studio-nav-num">2</span>
+          <span class="studio-nav-item-title">Voice Filter Tab 交互优化</span>
+          <time class="studio-nav-item-date" datetime="2026-08-17">2026.8.17</time>
+        </span>
+        </div>
+        </div>
+      </div>
+  </nav>
+  <aside class="studio-rail" data-studio-rail aria-label="原型控制">
+    <template data-studio-explore>
+        <div class="studio-field">
+          <p class="studio-label">语言</p>
+          <div class="studio-seg" id="lang-panel" role="radiogroup" aria-label="语言">
+            <span class="studio-seg-thumb" aria-hidden="true"></span>
+            <button type="button" data-lang="en" class="is-on" role="radio" aria-checked="true">EN</button>
+            <button type="button" data-lang="es" role="radio" aria-checked="false">ES</button>
+            <button type="button" data-lang="ja" role="radio" aria-checked="false">日本語</button>
+          </div>
+        </div>
+        <div class="studio-field">
+          <p class="studio-label">Recents</p>
+          <div class="studio-seg" id="recents-panel" role="radiogroup" aria-label="Recents">
+            <span class="studio-seg-thumb" aria-hidden="true"></span>
+            <button type="button" data-recents="1" class="is-on" role="radio" aria-checked="true">On</button>
+            <button type="button" data-recents="0" role="radio" aria-checked="false">Off</button>
+          </div>
+        </div>
+        <div class="studio-field">
+          <p class="studio-label">分割线</p>
+          <div class="studio-seg" id="slick-panel" role="radiogroup" aria-label="分割线">
+            <span class="studio-seg-thumb" aria-hidden="true"></span>
+            <button type="button" data-slick="recents" class="is-on" role="radio" aria-checked="true">Recents 后</button>
+            <button type="button" data-slick="all" role="radio" aria-checked="false">项之间</button>
+            <button type="button" data-slick="off" role="radio" aria-checked="false">无</button>
+          </div>
+        </div>
+        <div class="studio-field">
+          <p class="studio-label">Tab 数量</p>
+          <div class="studio-seg" id="tab-count-panel" role="group" aria-label="Tab 数量">
+            <button type="button" id="tab-count-minus" aria-label="减少 Tab">−</button>
+            <span class="tab-count-label" id="tab-count-label">6</span>
+            <button type="button" id="tab-count-plus" aria-label="增加 Tab">+</button>
+          </div>
+        </div>
+    </template>
+  </aside>
+  <div class="studio-board">
+  <div class="studio-hero">
+  <div class="studio-stage">
+<div class="phone">
+  <div class="ve-toast" id="ve-toast" role="status">
+    <span class="ve-toast-icon" aria-hidden="true">&#xE919;</span>
+    <span class="ve-toast-text" id="ve-toast-text">No recent filters yet. Try one now!</span>
+  </div>
+<div class="filter-stage">
+  <div class="mark-hit" data-hot="1">
+  <div class="ve-tab" id="ve-tab">
+    <div class="ve-tab-row" id="ve-tab-row">
+      <div class="ve-tab-indicator" id="ve-tab-indicator"></div>
+
+      <button type="button" class="ve-tab-item is-active" data-tab="0" data-kind="recents" aria-label="Recents">
+        <span class="icon" aria-hidden="true">&#xE950;</span>
+        <span class="ve-tab-label"><span>Recents</span></span>
+      </button>
+      <button type="button" class="ve-tab-item" data-tab="1" aria-label="Trending">
+        <span class="icon" aria-hidden="true">&#xE99A;</span>
+        <span class="ve-tab-label"><span>Trending</span></span>
+      </button>
+
+      <button type="button" class="ve-tab-item" data-tab="2" aria-label="Singing">
+        <span class="icon" aria-hidden="true">&#xE9C9;</span>
+        <span class="ve-tab-label"><span>Singing</span></span>
+      </button>
+
+      <button type="button" class="ve-tab-item" data-tab="3" aria-label="Roles">
+        <span class="icon" aria-hidden="true">&#xE995;</span>
+        <span class="ve-tab-label"><span>Roles</span></span>
+      </button>
+
+      <button type="button" class="ve-tab-item" data-tab="4" aria-label="Effects">
+        <span class="icon" aria-hidden="true">&#xE9B6;</span>
+        <span class="ve-tab-label"><span>Effects</span></span>
+      </button>
+
+      <button type="button" class="ve-tab-item" data-tab="5" aria-label="Languages">
+        <span class="icon" aria-hidden="true">&#xE95D;</span>
+        <span class="ve-tab-label"><span>Languages</span></span>
+      </button>
+    </div>
+  </div>
+  <span class="prd-mark spec-mark" aria-hidden="true">1</span>
+  </div>
+
+  <div class="mark-hit" data-hot="2">
+  <div class="filter-list" id="filter-list">
+    <div class="filter-list-track" id="filter-list-track"></div>
+  </div>
+  <span class="prd-mark spec-mark" aria-hidden="true">2</span>
+  </div>
+</div>
+</div>
+
+
+  </div>
+  <aside class="annot-col" id="annot-col" aria-hidden="false">
+    <div class="annot-inner">
+      <div class="prd-panel" id="prd-panel" aria-hidden="true">
+        <div class="annot-empty">
+          <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+          <p class="annot-empty-title">PRD 待补</p>
+          <p class="annot-empty-desc">设计和动效已定。产品补交互规则后再填这一栏。</p>
+        </div>
+      </div>
+
+      <div class="spec-panel" id="spec-panel" aria-hidden="false">
+        <div class="annot-md-block">
+          <div class="annot-toolbar">
+            <span class="annot-file">ve_tab_animation.md</span>
+            <div class="annot-actions">
+              <button type="button" class="annot-md-toggle" aria-expanded="false" aria-controls="spec-md">
+                <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                <span class="annot-md-hint">展开</span>
+              </button>
+              <button type="button" class="annot-copy" data-copy="spec-md">
+                <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                <span data-copy-label>复制</span>
+              </button>
+            </div>
+          </div>
+          <div class="annot-md-clip">
+            <pre class="annot-md" id="spec-md"># 交互与动效
+
+机内角标：
+
+| # | 表面 | 这条动效 |
+| --- | --- | --- |
+| 1 | VE-Tab | 切换时灰底、文案、行平移同一拍 |
+| 2 | Filter List | 拖拽跟手改大小，松手再吸附 |
+
+Toast 不打角标，不走 560ms。
+
+---
+
+## 共用
+
+Tab 与 Filter **共用**一套参数，原生不要拆成两套 ease。
+
+| | |
+| --- | --- |
+| 时长 | **560ms** |
+| 曲线 | `cubic-bezier(0.25, 0.72, 0.22, 1)` |
+| 用途 | Tab 切换、文案展开/收起、灰底平移改宽、Filter 松手吸附 |
+
+拖拽过程中 Filter **没有**过渡：位移和大小都跟手，松手后才用上面这套吸附。
+
+---
+
+## 1 · Tab 切换
+
+触发：点某个可点的 Tab（或 Filter 拖进另一分组）。
+
+同时发生、同一条 560ms 曲线：
+
+| 元素 | 做什么 |
+| --- | --- |
+| 灰色 pill | `x` + `width` 跟到目标 hug 框（min 110 / max 140） |
+| 目标项 | 文案 `0fr → 1fr`、间距 0→6、opacity 0→1 |
+| 离开项 | 反向收起 |
+| 行 | 仅当选中项会被裁切时 `translateX` |
+
+文案宽度必须用可插值轨道（`0fr ↔ 1fr`）。先打开过渡再切选中态。连点时灰底从当前在播的位置接到新目标。
+
+无 Recents 内容时点 Recents：只出 Toast，不要播这条。
+
+---
+
+## 2 · Filter 跟手
+
+拖拽中：位移和大小 1:1 跟手，**关掉** size 过渡。第 `i` 项缩小、第 `i+1` 项放大，其余 `k=0`。跨分割槽时一格是 120px。
+
+松手：用位移+速度估 `projectedX = x + v * 160`，吸附到该 index，`k → 1`，560ms 同 Tab 曲线。
+
+拖过分组边界时，角标 1 的 Tab 切换同步播。</pre>
+          </div>
+        </div>
+        <section class="prd-card">
+          <h3>参数</h3>
+          <table class="prd-table spec-table">
+            <tr><th>时长</th><td><strong>560ms</strong>。Toast 不要用这条。</td></tr>
+            <tr><th>曲线</th><td><span class="spec-code">cubic-bezier(0.25, 0.72, 0.22, 1)</span></td></tr>
+          </table>
+        </section>
+        <section class="prd-card">
+          <h3>角标</h3>
+          <ul>
+            <li class="prd-rule" data-hot="1">
+              <span class="spec-mark spec-mark--inline">1</span>
+              <p>点 Tab：灰底平移改宽、文案 0fr↔1fr、必要时整行平移，全部同一拍 560ms。连点从当前在播位置接走。Recents 不可选时只出 Toast。</p>
+              <span class="prd-rule-actions">
+                <button type="button" class="annot-icon" data-copy-rule aria-label="复制对应段落">
+                  <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                </button>
+              </span>
+            </li>
+            <li class="prd-rule" data-hot="2">
+              <span class="spec-mark spec-mark--inline">2</span>
+              <p>拖 Filter：大小跟手、无缓动。松手 560ms 吸附。跨分组时角标 1 同步播。分割槽占位 60，跨槽一格 120。</p>
+              <span class="prd-rule-actions">
+                <button type="button" class="annot-icon" data-copy-rule aria-label="复制对应段落">
+                  <svg class="studio-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                </button>
+              </span>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </div>
+  </aside>
+  </div>
+  </div>
+</div>
+
+<script src="../assets/studio-shell.js"></script>
+<script>
+  const TAB_GAP = 4;
+  const INACTIVE_W = 40;
+  const PILL_MIN_W = 110;
+  const PILL_MAX_W = 140;
+  const ANIM_MS = 560;
+  const TAB_MAX_W = 335;
+  const TAB_PAD_X = 6;
+
+  const row = document.getElementById('ve-tab-row');
+  const tabButtons = Array.from(document.querySelectorAll('.ve-tab-item'));
+  const recentsTab = document.querySelector('.ve-tab-item[data-kind="recents"]');
+  const indicator = document.getElementById('ve-tab-indicator');
+  const tabHugWidth = [];
+  let items = tabButtons.slice();
+  let animTimer = 0;
+  let activeTabIndex = 0;
+  let showRecents = true;
+  let slickMode = 'recents';
+  let tabCount = 6;
+  let tabTx = 0;
+  let tabDrag = false;
+  let tabMoved = false;
+  let tabStartX = 0;
+  let tabStartTx = 0;
+  let tabLastX = 0;
+  let tabLastT = 0;
+  let tabVel = 0;
+
+  function hugWidth(item) {
+    const clone = item.cloneNode(true);
+    clone.classList.add('is-active');
+    clone.style.cssText = [
+      'position:absolute',
+      'left:-9999px',
+      'top:0',
+      'visibility:hidden',
+      'width:max-content',
+      'min-width:' + PILL_MIN_W + 'px',
+      'max-width:' + PILL_MAX_W + 'px',
+      'padding:0 12px',
+      'transition:none'
+    ].join(';');
+    row.appendChild(clone);
+    const label = clone.querySelector('.ve-tab-label');
+    if (label) {
+      label.style.gridTemplateColumns = 'max-content';
+      label.style.marginLeft = '6px';
+      label.style.opacity = '1';
+      label.style.overflow = 'visible';
+    }
+    const width = clone.getBoundingClientRect().width;
+    clone.remove();
+    return Math.min(PILL_MAX_W, Math.max(PILL_MIN_W, width));
+  }
+
+  function indicatorBox() {
+    const ir = indicator.getBoundingClientRect();
+    const rr = row.getBoundingClientRect();
+    return { left: ir.left - rr.left, width: ir.width };
+  }
+
+  function tabBox(index) {
+    let left = 0;
+    for (let i = 0; i < index; i++) left += INACTIVE_W + TAB_GAP;
+    if (tabHugWidth[index] == null) tabHugWidth[index] = hugWidth(items[index]);
+    return { left: left, width: tabHugWidth[index] };
+  }
+
+  function layoutIndicator(tabIndex) {
+    tabHugWidth[tabIndex] = hugWidth(items[tabIndex]);
+    const box = tabBox(tabIndex);
+    const content = tabContentWidth();
+    const innerMax = TAB_MAX_W - TAB_PAD_X;
+    const inner = Math.min(innerMax, content);
+    const parent = row.parentElement;
+    parent.style.width = (inner + TAB_PAD_X) + 'px';
+    parent.style.left = ((375 - inner - TAB_PAD_X) / 2) + 'px';
+
+    let shift = 0;
+    let neededRight = box.left + box.width;
+    if (tabIndex === items.length - 2) neededRight += TAB_GAP + INACTIVE_W;
+    if (neededRight > inner) shift = inner - neededRight;
+    if (box.left + box.width + shift > inner) shift = inner - (box.left + box.width);
+    if (box.left + shift < 0) shift = -box.left;
+
+    indicator.style.width = box.width + 'px';
+    indicator.style.transform = 'translateX(' + box.left + 'px)';
+    tabTx = shift;
+    row.style.transform = 'translateX(' + shift + 'px)';
+  }
+
+  function tabVisibleWidth() {
+    const parent = row.parentElement;
+    const cs = getComputedStyle(parent);
+    return parent.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  }
+
+  function tabContentWidth() {
+    let width = 0;
+    for (let i = 0; i < items.length; i++) {
+      if (i === activeTabIndex) {
+        if (tabHugWidth[i] == null) tabHugWidth[i] = hugWidth(items[i]);
+        width += tabHugWidth[i];
+      } else {
+        width += INACTIVE_W;
+      }
+      if (i < items.length - 1) width += TAB_GAP;
+    }
+    return width;
+  }
+
+  function tabShiftMin() {
+    return Math.min(0, tabVisibleWidth() - tabContentWidth());
+  }
+
+  function rubberTabTx(value) {
+    const min = tabShiftMin();
+    const max = 0;
+    if (value > max) return max + (value - max) * 0.32;
+    if (value < min) return min + (value - min) * 0.32;
+    return value;
+  }
+
+  function applyTabTx(value, animate) {
+    tabTx = value;
+    row.style.transition = animate
+      ? 'transform ' + ANIM_MS + 'ms var(--ve-ease)'
+      : 'none';
+    row.style.transform = 'translateX(' + tabTx + 'px)';
+  }
+
+  function applyTab(tabIndex, animate) {
+    const toItem = items[tabIndex];
+    const fromItem = document.querySelector('.ve-tab-item.is-active');
+    if (!toItem || fromItem === toItem) return;
+
+    const fromBox = animate ? indicatorBox() : null;
+    activeTabIndex = tabIndex;
+    clearTimeout(animTimer);
+
+    if (animate) {
+      row.classList.add('is-animated');
+      if (fromBox && fromBox.width > 1) {
+        indicator.style.transition = 'none';
+        row.style.transition = 'none';
+        indicator.style.width = fromBox.width + 'px';
+        indicator.style.transform = 'translateX(' + fromBox.left + 'px)';
+        indicator.offsetWidth;
+        indicator.style.transition = '';
+        row.style.transition = '';
+      }
+    }
+
+    items.forEach((el) => el.classList.toggle('is-active', el === toItem));
+    layoutIndicator(tabIndex);
+    if (animate) {
+      animTimer = setTimeout(() => row.classList.remove('is-animated'), ANIM_MS + 40);
+    }
+  }
+
+  function selectTab(toItem) {
+    const tabIndex = items.indexOf(toItem);
+    if (tabIndex < 0) return;
+    if (!showRecents && toItem.dataset.kind === 'recents') {
+      showRecentsToast();
+      return;
+    }
+    applyTab(tabIndex, true);
+    const range = TAB_RANGES[tabIndex];
+    if (!range) return;
+    setFilterIndex(range[0] + tabFilterIndex[tabIndex], true, true);
+  }
+
+  const veTab = document.getElementById('ve-tab');
+  let tabHit = null;
+
+  veTab.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    tabDrag = true;
+    tabMoved = false;
+    tabHit = e.target.closest('.ve-tab-item');
+    tabStartX = tabLastX = e.clientX;
+    tabStartTx = tabTx;
+    tabLastT = performance.now();
+    tabVel = 0;
+  });
+
+  veTab.addEventListener('pointermove', (e) => {
+    if (!tabDrag) return;
+    const dx = e.clientX - tabStartX;
+    if (!tabMoved) {
+      if (Math.abs(dx) <= 6) return;
+      tabMoved = true;
+      veTab.classList.add('is-dragging');
+      if (veTab.setPointerCapture) veTab.setPointerCapture(e.pointerId);
+      row.classList.remove('is-animated');
+    }
+    const now = performance.now();
+    const dt = now - tabLastT;
+    if (dt > 0) tabVel = (e.clientX - tabLastX) / dt;
+    tabLastX = e.clientX;
+    tabLastT = now;
+    applyTabTx(rubberTabTx(tabStartTx + dx), false);
+  });
+
+  function endTabDrag() {
+    if (!tabDrag) return;
+    tabDrag = false;
+    veTab.classList.remove('is-dragging');
+    const hit = tabHit;
+    tabHit = null;
+    if (tabMoved) {
+      const min = tabShiftMin();
+      const projected = tabTx + tabVel * 160;
+      applyTabTx(Math.max(min, Math.min(0, projected)), true);
+      return;
+    }
+    if (hit) selectTab(hit);
+  }
+
+  veTab.addEventListener('pointerup', endTabDrag);
+  veTab.addEventListener('pointercancel', endTabDrag);
+
+  const FILTER_VIEW = 375;
+  const FILTER_W = 60;
+  const FILTER_ACTIVE_W = 116;
+  const FILTER_SLICK_W = 60;
+  const FILTER_SNAP_MS = ANIM_MS;
+  const FILTER_EASE = getComputedStyle(document.documentElement).getPropertyValue('--ve-ease').trim() || 'cubic-bezier(0.25, 0.72, 0.22, 1)';
+
+  const FILTERS = [
+    { name: 'Vibrato', bg: '#e0ff8a', emoji: '🌀' },
+    { name: 'Power', bg: '#a1ceff', emoji: '🙌' },
+    { name: 'Deep', bg: '#f9e88c', fg: '#895c13', mic: true, emoji: '&#x1F9D4;&#x200D;&#x2642;&#xFE0F;' },
+    { name: 'Sweet', bg: '#98fff8', emoji: '🎀' },
+    { name: 'Baby', bg: '#d6eef6', emoji: '🍼' },
+    { name: 'Ghostly', bg: '#c8a6ff', emoji: '👻' },
+    { name: 'Opera', bg: '#ffd0a8', emoji: '🎭' },
+    { name: 'Choir', bg: '#e8d0ff', emoji: '🎶' },
+    { name: 'Robot', bg: '#c5d4e0', emoji: '🤖' },
+    { name: 'Monster', bg: '#ffb4a8', emoji: '👹' },
+    { name: 'Angry', bg: '#9bf5c5', emoji: '😡' },
+    { name: 'Echo', bg: '#b8e0ff', emoji: '🔊' },
+    { name: 'Space', bg: '#d4c8ff', emoji: '🌌' },
+    { name: 'English', bg: '#d0e8ff', emoji: 'Aa' },
+    { name: 'Japanese', bg: '#ffd0d8', emoji: 'あ' },
+    { name: 'Spanish', bg: '#ffe8b8', emoji: 'ñ' }
+  ];
+
+  const TAB_RANGES_ALL = [
+    [0, 2],
+    [3, 5],
+    [6, 7],
+    [8, 10],
+    [11, 12],
+    [13, 15]
+  ];
+  const RECENTS_FILTER_COUNT = 3;
+  let TAB_RANGES = TAB_RANGES_ALL.slice();
+
+  const filterList = document.getElementById('filter-list');
+  const filterTrack = document.getElementById('filter-list-track');
+  let tabFilterIndex = TAB_RANGES.map(() => 0);
+
+  let filterItems = [];
+  let filterIndex = 0;
+  let filterTx = 0;
+  let filterDrag = false;
+  let filterStartX = 0;
+  let filterStartTx = 0;
+  let filterLastX = 0;
+  let filterLastT = 0;
+  let filterVel = 0;
+  let filterMoved = false;
+
+  function tabForFilter(index) {
+    for (let t = 0; t < TAB_RANGES.length; t++) {
+      const range = TAB_RANGES[t];
+      if (!range) continue;
+      if (index >= range[0] && index <= range[1]) return t;
+    }
+    return showRecents ? 0 : 1;
+  }
+
+  function slickAfterIndices() {
+    if (slickMode === 'off') return [];
+    if (slickMode === 'recents') {
+      return showRecents ? [RECENTS_FILTER_COUNT - 1] : [];
+    }
+    const ends = [];
+    for (let t = 0; t < TAB_RANGES.length; t++) {
+      const range = TAB_RANGES[t];
+      if (!range) continue;
+      ends.push(range[1]);
+    }
+    if (ends.length) ends.pop();
+    return ends;
+  }
+
+  function slickWidthBefore(index) {
+    let n = 0;
+    slickAfterIndices().forEach(function (end) {
+      if (index > end) n += 1;
+    });
+    return n * FILTER_SLICK_W;
+  }
+
+  function filterAnchor(index) {
+    return index * FILTER_W + FILTER_ACTIVE_W / 2 + slickWidthBefore(index);
+  }
+
+  function filterSnapTx(index) {
+    return FILTER_VIEW / 2 - filterAnchor(index);
+  }
+
+  function filterMinTx() {
+    return filterSnapTx(Math.max(0, filterItems.length - 1));
+  }
+
+  function filterMaxTx() {
+    return filterSnapTx(0);
+  }
+
+  function filterProgress(tx) {
+    const n = Math.max(1, filterItems.length);
+    const focus = FILTER_VIEW / 2 - tx;
+    if (focus <= filterAnchor(0)) return 0;
+    if (focus >= filterAnchor(n - 1)) return n - 1;
+    for (let i = 0; i < n - 1; i++) {
+      const a = filterAnchor(i);
+      const b = filterAnchor(i + 1);
+      if (focus <= b) return i + (focus - a) / (b - a);
+    }
+    return n - 1;
+  }
+
+  function applyFilterK(p) {
+    const n = filterItems.length;
+    const last = n - 1;
+    const i0 = Math.min(last, Math.floor(p));
+    const t = p - i0;
+    for (let i = 0; i < n; i++) {
+      let k = 0;
+      if (i === i0) k = 1 - t;
+      else if (i === i0 + 1) k = t;
+      if (i0 === last) k = i === last ? 1 : 0;
+      filterItems[i].style.setProperty('--k', String(k));
+      filterItems[i].classList.toggle('is-selected', k >= 0.5);
+    }
+  }
+
+  function applyFilterTx(value, animate) {
+    filterTx = value;
+    filterTrack.style.transition = animate
+      ? 'transform ' + FILTER_SNAP_MS + 'ms ' + FILTER_EASE
+      : 'none';
+    filterTrack.style.transform = 'translateX(' + filterTx + 'px)';
+  }
+
+  function setFilterIndex(index, animate, fromTab) {
+    if (!filterItems.length) return;
+    filterIndex = Math.max(0, Math.min(filterItems.length - 1, index));
+    const tab = tabForFilter(filterIndex);
+    const range = TAB_RANGES[tab];
+    if (range) tabFilterIndex[tab] = filterIndex - range[0];
+    applyFilterK(filterIndex);
+    applyFilterTx(filterSnapTx(filterIndex), animate);
+    if (!fromTab) applyTab(tab, animate);
+  }
+
+  function rubberTx(value) {
+    const min = filterMinTx();
+    const max = filterMaxTx();
+    if (value > max) return max + (value - max) * 0.32;
+    if (value < min) return min + (value - min) * 0.32;
+    return value;
+  }
+
+  function visibleFilters() {
+    const end = TAB_RANGES_ALL[tabCount - 1][1] + 1;
+    const all = FILTERS.slice(0, end);
+    return showRecents ? all : all.slice(RECENTS_FILTER_COUNT);
+  }
+
+  function rebuildFilters() {
+    const filters = visibleFilters();
+    const after = new Set(slickAfterIndices());
+    const html = [];
+    filters.forEach(function (filter, i) {
+      html.push(renderFilterButton(filter));
+      if (after.has(i)) html.push('<span class="filter-slick" aria-hidden="true"></span>');
+    });
+    filterTrack.innerHTML = html.join('');
+    filterItems = Array.from(filterTrack.querySelectorAll('.filter-item'));
+    filterTrack.classList.toggle('is-slick', after.size > 0);
+  }
+
+  function renderFilterButton(filter) {
+    const fg = filter.fg ? '--filter-fg:' + filter.fg + ';' : '';
+    const mic = filter.mic ? ' data-mic="true"' : '';
+    return (
+      '<button type="button" class="filter-item" style="--filter-bg:' + filter.bg + ';' + fg + '" aria-label="' + filter.name + '"' + mic + '>' +
+        '<span class="filter-tag">' +
+          '<span class="filter-wave" aria-hidden="true"><i class="filter-wave-l"></i><i class="filter-wave-m"></i><i class="filter-wave-r"></i></span>' +
+          '<span class="filter-tag-text">' + filter.name + '</span>' +
+        '</span>' +
+        '<span class="filter-dot">' +
+          '<span class="filter-emoji" aria-hidden="true">' + filter.emoji + '</span>' +
+          '<span class="icon filter-mic" aria-hidden="true">&#xE927;</span>' +
+        '</span>' +
+      '</button>'
+    );
+  }
+
+  filterList.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    filterDrag = true;
+    filterMoved = false;
+    filterStartX = filterLastX = e.clientX;
+    filterStartTx = filterTx;
+    filterLastT = performance.now();
+    filterVel = 0;
+    filterList.classList.add('is-dragging');
+    filterList.setPointerCapture(e.pointerId);
+    applyFilterTx(filterTx, false);
+  });
+
+  filterList.addEventListener('pointermove', (e) => {
+    if (!filterDrag) return;
+    const now = performance.now();
+    const dx = e.clientX - filterStartX;
+    if (Math.abs(dx) > 6) filterMoved = true;
+    const dt = now - filterLastT;
+    if (dt > 0) filterVel = (e.clientX - filterLastX) / dt;
+    filterLastX = e.clientX;
+    filterLastT = now;
+    applyFilterTx(rubberTx(filterStartTx + dx), false);
+    const p = filterProgress(filterTx);
+    applyFilterK(p);
+    const tab = tabForFilter(Math.round(p));
+    if (tab !== activeTabIndex) applyTab(tab, true);
+  });
+
+  function endFilterDrag() {
+    if (!filterDrag) return;
+    filterDrag = false;
+    filterList.classList.remove('is-dragging');
+    const projected = filterTx + filterVel * 160;
+    setFilterIndex(Math.round(filterProgress(projected)), true, false);
+  }
+
+  filterList.addEventListener('pointerup', endFilterDrag);
+  filterList.addEventListener('pointercancel', endFilterDrag);
+
+  filterList.addEventListener('click', (e) => {
+    if (filterMoved) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  }, true);
+
+  filterTrack.innerHTML = '';
+  filterItems = [];
+
+  const I18N = {
+    en: {
+      tabs: ['Recents', 'Trending', 'Singing', 'Roles', 'Effects', 'Languages'],
+      filters: ['Vibrato', 'Power', 'Deep', 'Sweet', 'Baby', 'Ghostly', 'Opera', 'Choir', 'Robot', 'Monster', 'Angry', 'Echo', 'Space', 'English', 'Japanese', 'Spanish'],
+      toast: 'No recent filters yet. Try one now!'
+    },
+    es: {
+      tabs: ['Recientes', 'Tendencias', 'Canto', 'Roles', 'Efectos', 'Idiomas'],
+      filters: ['Vibrato', 'Potencia', 'Grave', 'Dulce', 'Bebé', 'Fantasma', 'Ópera', 'Coro', 'Robot', 'Monstruo', 'Enojo', 'Eco', 'Espacio', 'Inglés', 'Japonés', 'Español'],
+      toast: 'Aún no hay filtros recientes. ¡Prueba uno!'
+    },
+    ja: {
+      tabs: ['履歴', 'トレンド', '歌', 'ロール', 'エフェクト', '言語'],
+      filters: ['ビブラート', 'パワー', 'ディープ', 'スイート', 'ベビー', 'ゴースト', 'オペラ', '合唱', 'ロボット', 'モンスター', '怒り', 'エコー', 'スペース', '英語', '日本語', 'スペイン語'],
+      toast: '最近のフィルターはまだありません。試してみよう！'
+    }
+  };
+
+  const langPanel = document.getElementById('lang-panel');
+  const toastEl = document.getElementById('ve-toast');
+  let currentLang = 'en';
+  let toastTimer = 0;
+
+  function layoutRailThumbs() {
+    if (typeof layoutStudioRailSegs === 'function') layoutStudioRailSegs();
+  }
+  function afterRailLayout() {
+    requestAnimationFrame(function () {
+      layoutRailThumbs();
+      requestAnimationFrame(layoutRailThumbs);
+    });
+  }
+
+  function showRecentsToast() {
+    toastEl.classList.add('is-on');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.remove('is-on'), 2200);
+  }
+
+  function hideRecentsToast() {
+    clearTimeout(toastTimer);
+    toastEl.classList.remove('is-on');
+  }
+
+  function applyLabels() {
+    const pack = I18N[currentLang];
+    tabButtons.forEach((item, i) => {
+      const label = pack.tabs[i];
+      item.setAttribute('aria-label', label);
+      item.querySelector('.ve-tab-label span').textContent = label;
+    });
+    const names = visibleFilters().map(function (_, i) {
+      const packNames = I18N[currentLang].filters;
+      return showRecents ? packNames[i] : packNames[i + RECENTS_FILTER_COUNT];
+    });
+    filterItems.forEach((item, i) => {
+      const label = names[i];
+      item.setAttribute('aria-label', label);
+      item.querySelector('.filter-tag-text').textContent = label;
+    });
+    document.getElementById('ve-toast-text').textContent = pack.toast;
+  }
+
+  function applyLocale(lang) {
+    currentLang = lang;
+    document.documentElement.lang = lang;
+    applyLabels();
+    tabHugWidth.length = 0;
+    langPanel.querySelectorAll('button[data-lang]').forEach((btn) => {
+      const on = btn.dataset.lang === lang;
+      btn.classList.toggle('is-on', on);
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+    layoutRailThumbs();
+    layoutIndicator(activeTabIndex);
+    const loads = [];
+    if (document.fonts && document.fonts.load) {
+      loads.push(document.fonts.load('700 16px Nunito'));
+      loads.push(document.fonts.load('700 16px "Noto Sans JP"'));
+    }
+    Promise.all(loads).then(function () {
+      tabHugWidth.length = 0;
+      layoutIndicator(activeTabIndex);
+    });
+  }
+
+  function setShowRecents(on) {
+    const switching = on !== showRecents && filterItems.length;
+    const prevTab = activeTabIndex;
+    const prevFilter = filterIndex;
+    if (on === showRecents && filterItems.length) return;
+
+    showRecents = on;
+    recentsTab.classList.toggle('is-locked', !on);
+    refreshTabModel();
+    tabFilterIndex = TAB_RANGES.map(() => 0);
+    rebuildFilters();
+    hideRecentsToast();
+
+    if (switching) {
+      if (on) {
+        activeTabIndex = Math.max(1, prevTab);
+        filterIndex = prevFilter + RECENTS_FILTER_COUNT;
+      } else {
+        activeTabIndex = 1;
+        filterIndex = 0;
+      }
+    }
+    activeTabIndex = clampActiveTab();
+    tabHugWidth.length = 0;
+    tabButtons.forEach((el) => el.classList.remove('is-active'));
+    items.forEach((el, i) => el.classList.toggle('is-active', i === activeTabIndex));
+    applyLabels();
+    layoutIndicator(activeTabIndex);
+    setFilterIndex(filterIndex, false, true);
+
+    document.querySelectorAll('#recents-panel button[data-recents]').forEach((btn) => {
+      const isOn = btn.dataset.recents === (on ? '1' : '0');
+      btn.classList.toggle('is-on', isOn);
+      btn.setAttribute('aria-checked', isOn ? 'true' : 'false');
+    });
+    layoutRailThumbs();
+  }
+
+  langPanel.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-lang]');
+    if (!btn) return;
+    applyLocale(btn.dataset.lang);
+  });
+
+  document.getElementById('recents-panel').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-recents]');
+    if (!btn) return;
+    setShowRecents(btn.dataset.recents === '1');
+  });
+
+  function setSlickMode(mode) {
+    slickMode = mode;
+    rebuildFilters();
+    applyLabels();
+    setFilterIndex(filterIndex, false, true);
+    document.querySelectorAll('#slick-panel button[data-slick]').forEach((btn) => {
+      const isOn = btn.dataset.slick === mode;
+      btn.classList.toggle('is-on', isOn);
+      btn.setAttribute('aria-checked', isOn ? 'true' : 'false');
+    });
+    layoutRailThumbs();
+  }
+
+  document.getElementById('slick-panel').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-slick]');
+    if (!btn) return;
+    setSlickMode(btn.dataset.slick);
+  });
+
+  function refreshTabModel() {
+    tabButtons.forEach(function (btn, i) {
+      btn.hidden = i >= tabCount;
+    });
+    recentsTab.classList.toggle('is-locked', !showRecents);
+    items = tabButtons.slice(0, tabCount);
+    const sliced = TAB_RANGES_ALL.slice(0, tabCount);
+    TAB_RANGES = showRecents
+      ? sliced.slice()
+      : sliced.map(function (range, i) {
+          return i === 0
+            ? null
+            : [range[0] - RECENTS_FILTER_COUNT, range[1] - RECENTS_FILTER_COUNT];
+        });
+  }
+
+  function updateTabCountUi() {
+    document.getElementById('tab-count-label').textContent = String(tabCount);
+    document.getElementById('tab-count-minus').disabled = tabCount <= 2;
+    document.getElementById('tab-count-plus').disabled = tabCount >= tabButtons.length;
+  }
+
+  function clampActiveTab() {
+    let next = Math.min(activeTabIndex, items.length - 1);
+    if (!showRecents && next === 0 && items.length > 1) next = 1;
+    return Math.max(0, next);
+  }
+
+  function setTabCount(n) {
+    n = Math.max(2, Math.min(tabButtons.length, n));
+    if (n === tabCount && items.length === n) {
+      updateTabCountUi();
+      return;
+    }
+    tabCount = n;
+    refreshTabModel();
+    while (tabFilterIndex.length < TAB_RANGES.length) tabFilterIndex.push(0);
+    tabFilterIndex.length = TAB_RANGES.length;
+    rebuildFilters();
+    activeTabIndex = clampActiveTab();
+    tabHugWidth.length = 0;
+    tabButtons.forEach((el) => el.classList.remove('is-active'));
+    items.forEach((el, i) => el.classList.toggle('is-active', i === activeTabIndex));
+    applyLabels();
+    layoutIndicator(activeTabIndex);
+    const range = TAB_RANGES[activeTabIndex];
+    if (range) {
+      const idx = range[0] + (tabFilterIndex[activeTabIndex] || 0);
+      setFilterIndex(Math.max(range[0], Math.min(range[1], idx)), false, true);
+    } else {
+      setFilterIndex(0, false, true);
+    }
+    updateTabCountUi();
+  }
+
+  document.getElementById('tab-count-panel').addEventListener('click', (e) => {
+    const minus = e.target.closest('#tab-count-minus');
+    const plus = e.target.closest('#tab-count-plus');
+    if (minus) setTabCount(tabCount - 1);
+    if (plus) setTabCount(tabCount + 1);
+  });
+
+  setShowRecents(true);
+  updateTabCountUi();
+  afterRailLayout();
+  window.addEventListener('resize', afterRailLayout);
+  requestAnimationFrame(function () {
+    document.getElementById('studio').classList.add('is-ready');
+  });
+
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      tabHugWidth.length = 0;
+      layoutIndicator(activeTabIndex);
+    });
+  }
+
+</script>
+</body>
+</html>

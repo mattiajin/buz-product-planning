@@ -5,7 +5,8 @@
 GitHub Pages（仓库 `main` 根目录）：
 
 - 落地页：https://mattiajin.github.io/buz-product-planning/delivery/
-- 原型：https://mattiajin.github.io/buz-product-planning/delivery/01-ai-character/
+- 01：https://mattiajin.github.io/buz-product-planning/delivery/01-ai-character/
+- 02：https://mattiajin.github.io/buz-product-planning/delivery/02-ve-tab/
 
 复制角标段落需要 HTTPS。Nunito 走 Google Fonts，国内可能慢。仓库若公开，不要放未对外的文案。
 
@@ -13,8 +14,5 @@ GitHub Pages（仓库 `main` 根目录）：
 | --- | --- |
 | `index.html` | 落地页 |
 | `docs/annot_shell.md` | 标注壳（各迭代共用） |
-| `01-ai-character/index.html` | 可点原型 |
-| `01-ai-character/docs/handoff.md` | 交接：已定 / 待补 |
-| `01-ai-character/docs/prd.md` | PRD 草稿 |
-| `01-ai-character/docs/motion.md` | 交互与动效原文 |
-| `01-ai-character/docs/stacked_bottom_sheet.md` | 叠层尺寸与时序 |
+| `01-ai-character/` | AI Character 资料与编辑 · 2026.9.4 |
+| `02-ve-tab/` | Voice Filter Tab 交互优化 · 2026.8.17 |
